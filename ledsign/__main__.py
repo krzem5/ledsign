@@ -33,6 +33,10 @@ def main():
 	if (options.enumerate):
 		devices=LEDSign.enumerate()
 		print("system devices:"+"".join([f"\n  {e}" for e in devices]))
+	if (not options.print_info and not options.print_settings and not options.print_driver):
+		options.print_info=True
+		options.print_settings=True
+		options.print_driver=True
 	device=LEDSign.open(device_path)
 	if (options.print_info):
 		print(f"device:\n  path: {device.path}\n  storage: {device.get_storage_size()} B\n  hardware: {device.get_hardware().get_string()}\n  firmware: {device.get_firmware()}\n  serial number: {device.get_serial_number()}")
