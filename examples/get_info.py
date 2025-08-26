@@ -1,6 +1,6 @@
 import sys;sys.path.insert(0,"..") # Use local ledsign module
 
-from ledsign import LEDSign,LEDSignProgram,LEDSignSelector
+from ledsign import LEDSign
 
 
 

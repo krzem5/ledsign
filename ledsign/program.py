@@ -1,5 +1,11 @@
+from ledsign.checksum import LEDSignCRC
 from ledsign.keypoint_list import LEDSignKeypoint,LEDSignKeypointList
+from ledsign.program_io import LEDSignCompiledProgram,LEDSignProgramParser
+from ledsign.protocol import LEDSignProtocol
 import ledsign.device
+import os
+import struct
+import sys
 import threading
 import weakref
 
@@ -47,8 +53,9 @@ class LEDSignProgram(object):
 		try:
 			func()
 			self.verify()
-		except:
+		except Exception as e:
 			self._has_error=True
+			raise e
 		finally:
 			for k,_ in builder._get_function_list():
 				if (k in old_namespace):

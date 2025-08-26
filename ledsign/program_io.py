@@ -1,7 +1,8 @@
 from ledsign.checksum import LEDSignCRC
-from ledsign.program import LEDSignProgramError
 from ledsign.protocol import LEDSignProtocol
+import ledsign.program
 import struct
+import time
 
 
 
@@ -221,7 +222,7 @@ class LEDSignCompiledProgram(object):
 
 	def _upload_to_device(self,device):
 		if (device._hardware._led_depth!=self._led_depth):
-			raise LEDSignProgramError("Mismatched program hardware")
+			raise ledsign.program.LEDSignProgramError("Mismatched program hardware")
 		result=LEDSignProtocol.process_packet(device._handle,LEDSignProtocol.PACKET_TYPE_PROGRAM_CHUNK_REQUEST,LEDSignProtocol.PACKET_TYPE_PROGRAM_SETUP,self._ctrl,self._crc)
 		while (result[0]!=0xffffffff):
 			if (not result[1]):

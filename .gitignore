@@ -1,4 +1,5 @@
 *.egg-info
+*.led
 __pycache__
 build
 dist
