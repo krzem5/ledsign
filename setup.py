@@ -17,7 +17,7 @@ setuptools.setup(
 		"Source Code": "https://github.com/krzem5/ledsign",
 	},
 	author="Krzesimir Hyżyk",
-	license="BSD-3-Clause license",
+	license="BSD-3-Clause",
 	classifiers=[],
 	python_requires=">=3.9",
 	install_requires=[],
