@@ -11,7 +11,7 @@ with open("README.md","r") as rf:
 setuptools.setup(
 	name="ledsign",
 	version=VERSION,
-	description="LED Sign controller",
+	description="LED Sign Python API",
 	url="https://github.com/krzem5/ledsign",
 	project_urls={
 		"Source Code": "https://github.com/krzem5/ledsign",

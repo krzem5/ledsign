@@ -1,8 +1,6 @@
 import sys
 sys.path.insert(0,"..")
 
-
-
 from ledsign import LEDSign,LEDSignProgram,LEDSignSelector
 
 
