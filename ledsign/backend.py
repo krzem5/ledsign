@@ -82,7 +82,7 @@ class LEDSignProtocolBackendWindows(object):
 		if (not self.WinUsb_ControlTransfer(winusb_handle.value,0x00400000545352c0,buffer,64,ctypes.byref(transferred),0) or transferred.value!=5 or bytes(buffer[:5])!=b"reset"):
 			self.WinUsb_Free(winusb_handle.value)
 			self.CloseHandle(handle)
-			raise LEDSignProtocolError("Unable to reset device")
+			raise LEDSignProtocolError("Unable to reset device, Python API disabled")
 		return (handle,winusb_handle.value)
 
 	def close(self,handles):
