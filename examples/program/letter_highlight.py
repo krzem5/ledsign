@@ -10,8 +10,24 @@ device=LEDSign.open()
 
 @LEDSignProgram(device)
 def program():
+	duration=2
+	fade=0.4
+	bbox=LEDSignSelector.get_bounding_box()
+	height=bbox[3]-bbox[1]
+	fade_height=height*fade
+	hue_map={}
 	for i,_,mask in LEDSignSelector.get_letter_masks():
-		kp(hsv(i/LEDSignSelector.get_letter_count()*360,1,1),mask)
+		hue_map[mask]=i/LEDSignSelector.get_letter_count()*360
+	for x,y,mask in LEDSignSelector.get_pixels():
+		for k,hue in hue_map.items():
+			if (k&mask):
+				break
+		at(0)
+		for i in range(0,round(duration/dt())):
+			bar_y=i*dt()/duration*(height+2*fade_height)+bbox[1]-fade_height
+			s=min(abs(y-bar_y)/fade_height,1)*0.75+0.25
+			kp(hsv(hue,s,1),mask)
+			af(dt())
 	end()
 
 

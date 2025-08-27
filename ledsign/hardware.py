@@ -57,6 +57,29 @@ class LEDSignHardware(object):
 
 class LEDSignSelector(object):
 	@staticmethod
+	def get_bounding_box(mask=-1,hardware=None):
+		if (hardware is None):
+			hardware=LEDSignProgramBuilder.instance().program._hardware
+		out=[0,0,0,0]
+		is_first=True
+		for i,xy in enumerate(hardware._pixels):
+			if (xy is not None and (mask&1)):
+				x,y=xy
+				if (is_first):
+					is_first=False
+					out[0]=x
+					out[1]=y
+					out[2]=x
+					out[3]=y
+				else:
+					out[0]=min(out[0],x)
+					out[1]=min(out[1],y)
+					out[2]=max(out[2],x)
+					out[3]=max(out[3],y)
+			mask>>=1
+		return out
+
+	@staticmethod
 	def get_center(mask=-1,hardware=None):
 		if (hardware is None):
 			hardware=LEDSignProgramBuilder.instance().program._hardware

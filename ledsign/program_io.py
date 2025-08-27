@@ -6,7 +6,7 @@ import time
 
 
 
-__all__=["LEDSignProgramParser","LEDSignCompiledProgram","LEDSignProgramBuilder"]
+__all__=["LEDSignProgramParser","LEDSignCompiledProgram"]
 
 
 
