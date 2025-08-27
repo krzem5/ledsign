@@ -43,31 +43,22 @@ class LEDSignProtocol(object):
 		PACKET_TYPE_HARDWARE_DATA_RESPONSE: "<BBHH16s"
 	}
 
-	_backend=None
-
-	@staticmethod
-	def _init():
-		if (LEDSignProtocol._backend is None):
-			LEDSignProtocol._backend=(LEDSignProtocolBackendWindows if sys.platform=="win32" else LEDSignProtocolBackendLinux)()
+	_backend=(LEDSignProtocolBackendWindows if sys.platform=="win32" else LEDSignProtocolBackendLinux)()
 
 	@staticmethod
 	def enumerate():
-		LEDSignProtocol._init()
 		return LEDSignProtocol._backend.enumerate()
 
 	@staticmethod
 	def open(path):
-		LEDSignProtocol._init()
 		return LEDSignProtocol._backend.open(path)
 
 	@staticmethod
 	def close(handle):
-		LEDSignProtocol._init()
 		return LEDSignProtocol._backend.close(handle)
 
 	@staticmethod
 	def process_packet(handle,ret_type,type,*args):
-		LEDSignProtocol._init()
 		ret=LEDSignProtocol._backend.io_read_write(handle,struct.pack(LEDSignProtocol.PACKET_FORMATS[type],type,struct.calcsize(LEDSignProtocol.PACKET_FORMATS[type]),*args))
 		if (len(ret)<2 or ret[0]!=ret_type or ret[1]!=len(ret) or ret[1]!=struct.calcsize(LEDSignProtocol.PACKET_FORMATS[ret_type])):
 			if (ret_type==LEDSignProtocol.PACKET_TYPE_DEVICE_INFO and type==LEDSignProtocol.PACKET_TYPE_HOST_INFO):
@@ -77,10 +68,8 @@ class LEDSignProtocol(object):
 
 	@staticmethod
 	def process_extended_read(handle,size):
-		LEDSignProtocol._init()
 		return LEDSignProtocol._backend.io_bulk_read(handle,size)
 
 	@staticmethod
 	def process_extended_write(handle,data):
-		LEDSignProtocol._init()
 		return LEDSignProtocol._backend.io_bulk_write(handle,data)

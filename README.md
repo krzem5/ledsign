@@ -10,7 +10,7 @@ pip install ledsign
 
 ## Usage
 
-The package also features a command-line interface, with options for common operations:
+The package also features a command line interface, which supports the most common operations:
 ```
 $ python3 -m ledsign
 Usage: ledsign [options]
