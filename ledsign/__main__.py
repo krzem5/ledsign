@@ -25,8 +25,8 @@ def main():
 	parser.add_option("-i","--print-info",action="store_true",dest="print_info",help="print device hardware information")
 	parser.add_option("-c","--print-config",action="store_true",dest="print_config",help="print device configuration")
 	parser.add_option("-p","--print-driver",action="store_true",dest="print_driver",help="print driver stats")
-	parser.add_option("-s","--save",metavar="PROGRAM",dest="save_program",help="save current program into file PROGRAM")
-	parser.add_option("-u","--upload",metavar="PROGRAM",dest="upload_program",help="upload program from file PROGRAM to the device (requires read-write mode)")
+	parser.add_option("-s","--save",metavar="PROGRAM",dest="save_program",help="save current program into PROGRAM")
+	parser.add_option("-u","--upload",metavar="PROGRAM",dest="upload_program",help="upload file PROGRAM to the device (requires read-write mode)")
 	options,args=parser.parse_args()
 	device_path=None
 	if (not options.enumerate_only):
