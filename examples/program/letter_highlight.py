@@ -19,8 +19,9 @@ def program():
 	for i,_,mask in LEDSignSelector.get_letter_masks():
 		hue_map[mask]=i/LEDSignSelector.get_letter_count()*360
 	for x,y,mask in LEDSignSelector.get_pixels():
-		for k,hue in hue_map.items():
-			if (k&mask):
+		for letter_mask in hue_map:
+			if (letter_mask&mask):
+				hue=hue_map[letter_mask]
 				break
 		at(0)
 		for i in range(0,round(duration/dt())):
