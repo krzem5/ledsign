@@ -4,14 +4,14 @@
 
 `ledsign` is available for download via PyPI. It can be install with `pip`:
 
-```bash
-$ pip install ledsign
+```
+pip install ledsign
 ```
 
 ## Usage
 
 The package also features a command-line interface, with options for common operations:
-```bash
+```
 $ python3 -m ledsign
 Usage: ledsign [options]
 
