@@ -1,14 +1,13 @@
-from ledsign.backend import LEDSignProtocolBackendWindows,LEDSignProtocolBackendLinux
+from ledsign.backend import LEDSignProtocolError,LEDSignProtocolBackendWindows,LEDSignProtocolBackendLinux
 import struct
 import sys
 
 
 
-__all__=["LEDSignProtocolError","LEDSignUnsupportedProtocolError","LEDSignProtocol"]
+__all__=["LEDSignUnsupportedProtocolError","LEDSignProtocol"]
 
 
 
-LEDSignProtocolError=type("LEDSignProtocolError",(Exception,),{})
 LEDSignUnsupportedProtocolError=type("LEDSignUnsupportedProtocolError",(Exception,),{})
 
 

@@ -121,12 +121,12 @@ class LEDSign(object):
 	def get_program(self):
 		return self._program
 
-	def upload_program(self,program):
+	def upload_program(self,program,callback=None):
 		if (not isinstance(program,LEDSignCompiledProgram)):
 			raise TypeError(f"Expected 'LEDSignCompiledProgram', got '{program.__class__.__name__}'")
 		if (self._access_mode!=LEDSign.ACCESS_MODE_READ_WRITE):
 			raise LEDSignAccessError("Program upload not allowed, Python API configured as read-only")
-		program._upload_to_device(self)
+		program._upload_to_device(self,callback)
 
 	@staticmethod
 	def open(path=None):

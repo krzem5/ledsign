@@ -220,7 +220,7 @@ class LEDSignCompiledProgram(object):
 	def __repr__(self):
 		return f"<LEDSignCompiledProgram size={len(self._data)} B>"
 
-	def _upload_to_device(self,device):
+	def _upload_to_device(self,device,callback):
 		if (device._hardware._led_depth!=self._led_depth):
 			raise ledsign.program.LEDSignProgramError("Mismatched program hardware")
 		result=LEDSignProtocol.process_packet(device._handle,LEDSignProtocol.PACKET_TYPE_PROGRAM_CHUNK_REQUEST,LEDSignProtocol.PACKET_TYPE_PROGRAM_SETUP,self._ctrl,self._crc)
@@ -228,8 +228,12 @@ class LEDSignCompiledProgram(object):
 			if (not result[1]):
 				time.sleep(0.02)
 			else:
+				if (callback is not None):
+					callback(result[0]/len(self._data))
 				LEDSignProtocol.process_extended_write(device._handle,self._data[result[0]:result[0]+result[1]])
 			result=LEDSignProtocol.process_packet(device._handle,LEDSignProtocol.PACKET_TYPE_PROGRAM_CHUNK_REQUEST,LEDSignProtocol.PACKET_TYPE_PROGRAM_UPLOAD_STATUS)
+		if (callback is not None):
+			callback(1.0)
 		device._driver_program_offset_divisor=self._offset_divisor
 		device._driver_program_max_offset=self._max_offset
 		device._driver_info_sync_next_time=0

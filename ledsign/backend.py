@@ -4,10 +4,11 @@ import struct
 
 
 
-__all__=["LEDSignDeviceInUseError","LEDSignProtocolBackendWindows","LEDSignProtocolBackendLinux"]
+__all__=["LEDSignProtocolError","LEDSignDeviceInUseError","LEDSignProtocolBackendWindows","LEDSignProtocolBackendLinux"]
 
 
 
+LEDSignProtocolError=type("LEDSignProtocolError",(Exception,),{})
 LEDSignDeviceInUseError=type("LEDSignDeviceInUseError",(Exception,),{})
 
 
