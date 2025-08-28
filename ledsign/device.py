@@ -133,7 +133,7 @@ class LEDSign(object):
 		if (path is None):
 			devices=LEDSignProtocol.enumerate()
 			if (not devices):
-				raise LEDSignDeviceNotFoundError("Device not found")
+				raise LEDSignDeviceNotFoundError("No device found")
 			path=devices[0]
 		handle=None
 		try:

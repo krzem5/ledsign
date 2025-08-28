@@ -46,3 +46,10 @@ class LEDSignCRC(object):
 	def update(self,data):
 		for e in data:
 			self.value=LEDSignCRC.TABLE[(self.value>>24)^e]^((self.value&0xffffff)<<8)
+
+
+
+
+class LEDSignChunkHash(object):
+	def __init__(self,data):
+		self.value=[0]*8

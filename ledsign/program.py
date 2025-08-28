@@ -39,7 +39,7 @@ class LEDSignProgram(object):
 	def __repr__(self):
 		return f"<LEDSignProgram{('[unloaded]' if self._load_parameters is not None else '')} hardware={self._hardware.get_string()} duration={self._duration/60:.3f}s>"
 
-	def __call__(self,func):
+	def __call__(self,func,skip_verify=False):
 		self._builder_ready=True
 		builder=LEDSignProgramBuilder(self)
 		self._builder_ready=False
@@ -52,7 +52,10 @@ class LEDSignProgram(object):
 			namespace[k]=v
 		try:
 			func()
-			self.verify()
+			if (skip_verify):
+				self._has_error=True
+			else:
+				self.verify()
 		except Exception as e:
 			self._has_error=True
 			raise e
@@ -67,10 +70,8 @@ class LEDSignProgram(object):
 
 	def _add_raw_keypoint(self,rgb,end,duration,mask,frame):
 		mask&=self._hardware._mask
-		if (not mask):
-			return
-		kp=LEDSignKeypoint(rgb,end,duration,mask,frame)
-		self._keypoint_list.insert(kp)
+		if (mask):
+			self._keypoint_list.insert(LEDSignKeypoint(rgb,end,duration,mask,frame))
 
 	def _load_from_file(self,file_path):
 		size=os.stat(file_path).st_size
@@ -168,6 +169,7 @@ class LEDSignProgramBuilder(object):
 		"kp": "keypoint",
 		"tm": "time"
 	}
+
 	_global_lock=threading.Lock()
 	_current_instance=None
 
