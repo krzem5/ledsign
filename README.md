@@ -12,7 +12,7 @@ pip install ledsign
 
 The package also features a command line interface, which supports the most common operations:
 ```
-$ python3 -m ledsign
+$ python -m ledsign
 Usage: ledsign [options]
 
 Options:
