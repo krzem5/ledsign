@@ -19,7 +19,6 @@ setuptools.setup(
 	author="Krzesimir Hyżyk",
 	license="BSD-3-Clause",
 	classifiers=[],
-	python_requires=">=3.9",
 	install_requires=[],
 	packages=["ledsign"],
 	long_description=description,
