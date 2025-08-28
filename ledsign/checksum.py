@@ -1,4 +1,13 @@
-__all__=["LEDSignCRC"]
+import array
+
+
+
+__all__=["LEDSignCRC","LEDSignChunkHash"]
+
+
+
+def _rotate_bits_right(a,b):
+	return (a>>b)|(a<<(32-b))
 
 
 
@@ -49,7 +58,38 @@ class LEDSignCRC(object):
 
 
 
-
 class LEDSignChunkHash(object):
 	def __init__(self,data):
-		self.value=[0]*8
+		data_words=array.array("I")
+		data_words.frombytes(data+b"\x00"*((-len(data))&63))
+		p=0xdcdeefbf0983
+		q=0x1f9160f31bd5
+		a=0xccff6e12
+		b=0x1e3918bf
+		c=0xcaccf7e8
+		d=0x57cb7a25
+		e=0xd13e8e2a
+		f=0x3dc19509
+		g=0x2327da6f
+		h=0xe08221ea
+		w=[0 for _ in range(0,64)]
+		for i in range(0,len(data),64):
+			for j in range(0,16):
+				w[j]=data_words[(i>>2)+j]
+			for j in range(16,64):
+				w[j]=((_rotate_bits_right(w[j-2],17)^_rotate_bits_right(w[j-2],19)^(w[j-2]>>10))+w[j-7]+(_rotate_bits_right(w[j-15],7)^_rotate_bits_right(w[j-15],18)^(w[j-15]>>3))+w[j-16])&0xffffffff
+			for j in range(0,64):
+				p=(0xf5f645795549*p+0xfbdc6d02a8f7)&0xffffffffffff
+				q=(0xf741f5162309*q+0xa1f31c01d3c1)&0xffffffffffff
+				t=(_rotate_bits_right(e,6)^_rotate_bits_right(e,11)^_rotate_bits_right(e,25))+(g^(e&(f^g)))+h+w[j]+((p^q)>>16)
+				d=(d+t)&0xffffffff
+				t=(t+(_rotate_bits_right(a,2)^_rotate_bits_right(a,13)^_rotate_bits_right(a,22))+((a&b)|((a|b)&c)))&0xffffffff
+				h=a
+				a=b
+				b=c
+				c=d
+				d=e
+				e=f
+				f=g
+				g=t
+		self.value=[a,b,c,d,e,f,g,h]

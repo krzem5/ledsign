@@ -231,7 +231,6 @@ class LEDSignCompiledProgram(object):
 			new_hash=LEDSignChunkHash(self._data[result[0]:result[0]+LEDSignCompiledProgram.UPLOAD_HASH_BUFFER_SIZE]).value
 			for i in range(0,8):
 				mask|=new_hash[i]^result[2+i]
-			print(mask,result[1],result[2:],new_hash)
 			if (mask):
 				if (not result[1]):
 					time.sleep(0.02)
