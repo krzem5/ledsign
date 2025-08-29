@@ -32,7 +32,7 @@ class LEDSign(object):
 		self.path=path
 		self._handle=handle
 		self._access_mode=config_packet[6]&0x0f
-		self._psu_current=config_packet[7]/10
+		self._psu_current=(config_packet[7]&0x7f)/10
 		self._storage_size=config_packet[1]<<10
 		self._hardware=LEDSignHardware(handle,config_packet[2])
 		self._firmware=config_packet[9].decode("utf-8")
