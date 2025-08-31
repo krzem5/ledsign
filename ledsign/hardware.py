@@ -57,6 +57,12 @@ class LEDSignHardware(object):
 
 class LEDSignSelector(object):
 	@staticmethod
+	def get_led_depth(hardware=None):
+		if (hardware is None):
+			hardware=LEDSignProgramBuilder.instance().program._hardware
+		return hardware._led_depth
+
+	@staticmethod
 	def get_bounding_box(mask=-1,hardware=None):
 		if (hardware is None):
 			hardware=LEDSignProgramBuilder.instance().program._hardware
