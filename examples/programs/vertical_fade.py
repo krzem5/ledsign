@@ -35,4 +35,4 @@ def program():
 if (device.get_access_mode()==LEDSign.ACCESS_MODE_READ_WRITE):
 	device.upload_program(program.compile())
 else:
-	program.save("letter_highlight.led")
+	program.save("vertical_fade.led")
