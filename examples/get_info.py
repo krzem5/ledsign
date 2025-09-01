@@ -3,7 +3,9 @@ import sys;sys.path.insert(0,"..") # Use local ledsign module
 from ledsign import LEDSign
 
 
-
+for i in range(10000):
+	print(i)
+	LEDSign.open().close()
 devices=LEDSign.enumerate()
 if (not devices):
 	print("No devices found")
