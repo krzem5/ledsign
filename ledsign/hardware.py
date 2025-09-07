@@ -50,6 +50,9 @@ class LEDSignHardware(object):
 	def __repr__(self):
 		return f"<LEDSignHardware config={self.get_string()} pixels={self._pixel_count}>"
 
+	def get_raw(self):
+		return self._raw_config
+
 	def get_string(self):
 		return "["+" ".join([f"{e:02x}" for e in self._raw_config])+"]"
 
