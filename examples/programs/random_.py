@@ -26,4 +26,4 @@ def program():
 if (device.get_access_mode()==LEDSign.ACCESS_MODE_READ_WRITE):
 	device.upload_program(program.compile())
 else:
-	program.save("random.led")
+	program.save("random_.led")
