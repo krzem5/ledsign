@@ -132,10 +132,12 @@ class LEDSignSelector(object):
 	def get_letter_masks(hardware=None):
 		if (hardware is None):
 			hardware=LEDSignProgramBuilder.instance().program._hardware
+		j=0
 		for i in range(0,8):
 			if (not hardware._raw_config[i]):
 				continue
-			yield (i,chr(hardware._raw_config[i]),((1<<((i+1)*hardware._led_depth))-(1<<(i*hardware._led_depth)))&hardware._mask)
+			yield (j,chr(hardware._raw_config[i]),((1<<((i+1)*hardware._led_depth))-(1<<(i*hardware._led_depth)))&hardware._mask)
+			j+=1
 
 	@staticmethod
 	def get_letter_count(hardware=None):
