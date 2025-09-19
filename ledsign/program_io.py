@@ -44,7 +44,7 @@ class LEDSignProgramParser(object):
 
 	def update(self,data):
 		for i in range(0,len(data),12):
-			rvec,gvec,bvec=struct.unpack("<III",data[i:i+12])
+			gvec,rvec,bvec=struct.unpack("<III",data[i:i+12])
 			rvec=_bit_permute_step(rvec,0x0a0a0a0a,3)
 			gvec=_bit_permute_step(gvec,0x0a0a0a0a,3)
 			bvec=_bit_permute_step(bvec,0x0a0a0a0a,3)
@@ -214,9 +214,9 @@ class LEDSignCompiledProgram(object):
 				gvechi=_bit_permute_step(gvechi,0x0000ff00,8)
 				bvechi=_bit_permute_step(bvechi,0x0000ff00,8)
 				k=i*self._led_depth*24+j*12
-				self._data[k:k+12]=struct.pack("<III",rveclo,gveclo,bveclo)
+				self._data[k:k+12]=struct.pack("<III",gveclo,rveclo,bveclo)
 				k+=12*self._led_depth
-				self._data[k:k+12]=struct.pack("<III",rvechi,gvechi,bvechi)
+				self._data[k:k+12]=struct.pack("<III",gvechi,rvechi,bvechi)
 		self._crc=LEDSignCRC(self._data).value
 
 	def __repr__(self):
