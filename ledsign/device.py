@@ -38,7 +38,7 @@ class LEDSign(object):
 		self._firmware=config_packet[9].hex()
 		self._serial_number=config_packet[10]
 		self._driver_brightness=config_packet[5]&0x0f
-		self._driver_program_paused=not config_packet[8]
+		self._driver_program_paused=not (config_packet[8]&1)
 		self._driver_program_offset_divisor=max((config_packet[3]&0xff)<<1,1)*60
 		self._driver_program_max_offset=max(config_packet[3]>>8,1)
 		self._driver_info_sync_next_time=0
