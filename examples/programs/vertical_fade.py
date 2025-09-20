@@ -25,7 +25,7 @@ def program():
 		at(0)
 		for i in range(0,round(duration/dt())):
 			bar_y=i*dt()/duration*(height+2*fade_height)+bbox[1]-fade_height
-			s=min(abs(y-bar_y)/fade_height,1)*0.75+0.25
+			s=min(abs(y-bar_y)/fade_height,1)
 			kp(hsv(hue,s,1),mask)
 			af(dt())
 	end()
