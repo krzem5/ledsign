@@ -150,7 +150,7 @@ class LEDSignProtocolBackendLinux(object):
 		if (self.ioctl(handle,LEDSignProtocolBackendLinux.USBDEVFS_CLAIMINTERFACE,struct.pack("<I",1))<0):
 			raise LEDSignDeviceInUseError("Device already in use")
 		buffer=(ctypes.c_uint8*64)()
-		if (self.ioctl(handle,LEDSignProtocolBackendLinux.USBDEVFS_CONTROL,struct.pack("<BBHHHI4xQ",0xc0,0x52,0x5453,0,64,1000,ctypes.addressof(buffer)))!=5 or bytes(buffer[:5])!=b"reset"):
+		if (self.ioctl(handle,LEDSignProtocolBackendLinux.USBDEVFS_CONTROL,struct.pack("<BBHHHI4xQ",0xc0,0x52,0x5453,0,64,3000,ctypes.addressof(buffer)))!=5 or bytes(buffer[:5])!=b"reset"):
 			os.close(handle)
 			raise LEDSignProtocolError("Unable to reset device, Python API disabled")
 		return handle
@@ -160,22 +160,22 @@ class LEDSignProtocolBackendLinux(object):
 
 	def io_read_write(self,handle,packet):
 		packet=bytearray(packet)
-		if (self.ioctl(handle,LEDSignProtocolBackendLinux.USBDEVFS_BULK,struct.pack("<III4xQ",0x04,len(packet),1000,ctypes.addressof((ctypes.c_uint8*len(packet)).from_buffer(packet))))!=len(packet)):
+		if (self.ioctl(handle,LEDSignProtocolBackendLinux.USBDEVFS_BULK,struct.pack("<III4xQ",0x04,len(packet),3000,ctypes.addressof((ctypes.c_uint8*len(packet)).from_buffer(packet))))!=len(packet)):
 			raise LEDSignProtocolError("Write to endpoint 04h failed")
 		out=(ctypes.c_uint8*64)()
-		ret=self.ioctl(handle,LEDSignProtocolBackendLinux.USBDEVFS_BULK,struct.pack("<III4xQ",0x84,64,1000,ctypes.addressof(out)))
+		ret=self.ioctl(handle,LEDSignProtocolBackendLinux.USBDEVFS_BULK,struct.pack("<III4xQ",0x84,64,3000,ctypes.addressof(out)))
 		if (ret<2 or ret>64):
 			raise LEDSignProtocolError("Read from endpoint 84h failed")
 		return bytearray(out)[:ret]
 
 	def io_bulk_read(self,handle,size):
 		out=(ctypes.c_uint8*size)()
-		ret=self.ioctl(handle,LEDSignProtocolBackendLinux.USBDEVFS_BULK,struct.pack("<III4xQ",0x85,size,1000,ctypes.addressof(out)))
+		ret=self.ioctl(handle,LEDSignProtocolBackendLinux.USBDEVFS_BULK,struct.pack("<III4xQ",0x85,size,3000,ctypes.addressof(out)))
 		if (ret!=size):
 			raise LEDSignProtocolError("Read from endpoint 85h failed")
 		return bytearray(out)
 
 	def io_bulk_write(self,handle,data):
 		data=bytearray(data)
-		if (self.ioctl(handle,LEDSignProtocolBackendLinux.USBDEVFS_BULK,struct.pack("<III4xQ",0x05,len(data),1000,ctypes.addressof((ctypes.c_uint8*len(data)).from_buffer(data))))!=len(data)):
+		if (self.ioctl(handle,LEDSignProtocolBackendLinux.USBDEVFS_BULK,struct.pack("<III4xQ",0x05,len(data),3000,ctypes.addressof((ctypes.c_uint8*len(data)).from_buffer(data))))!=len(data)):
 			raise LEDSignProtocolError("Write to endpoint 05h failed")
