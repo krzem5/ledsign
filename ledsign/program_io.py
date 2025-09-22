@@ -225,17 +225,25 @@ class LEDSignCompiledProgram(object):
 	def _upload_to_device(self,device,callback):
 		if (device._hardware._led_depth!=self._led_depth):
 			raise ledsign.program.LEDSignProgramError("Mismatched program hardware")
-		result=LEDSignProtocol.process_packet(device._handle,LEDSignProtocol.PACKET_TYPE_PROGRAM_CHUNK_REQUEST,LEDSignProtocol.PACKET_TYPE_PROGRAM_SETUP,self._ctrl,self._crc)
+		result=LEDSignProtocol.process_packet(device._handle,LEDSignProtocol.PACKET_TYPE_PROGRAM_CHUNK_REQUEST_DEVICE,LEDSignProtocol.PACKET_TYPE_PROGRAM_SETUP,self._ctrl,self._crc)
+		clear_progress_active=True
 		while (result[0]!=0xffffffff):
 			if (not result[1]):
-				time.sleep(0.02)
+				if (not clear_progress_active):
+					time.sleep(0.02)
 			else:
+				if (clear_progress_active):
+					if (callback is not None):
+						callback(1.0,False)
+					clear_progress_active=False
 				if (callback is not None):
-					callback(result[0]/len(self._data))
+					callback(result[0]/len(self._data),True)
 				LEDSignProtocol.process_extended_write(device._handle,self._data[result[0]:result[0]+result[1]])
-			result=LEDSignProtocol.process_packet(device._handle,LEDSignProtocol.PACKET_TYPE_PROGRAM_CHUNK_REQUEST,LEDSignProtocol.PACKET_TYPE_PROGRAM_UPLOAD_STATUS)
+			result=LEDSignProtocol.process_packet(device._handle,LEDSignProtocol.PACKET_TYPE_PROGRAM_CHUNK_REQUEST_DEVICE,LEDSignProtocol.PACKET_TYPE_PROGRAM_UPLOAD_STATUS)
+			if (clear_progress_active and callback is not None):
+				callback(result[2]/len(self._data),False)
 		if (callback is not None):
-			callback(1.0)
+			callback(1.0,True)
 		device._driver_program_offset_divisor=self._offset_divisor
 		device._driver_program_max_offset=self._max_offset
 		device._driver_info_sync_next_time=0

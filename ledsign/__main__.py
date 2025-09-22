@@ -12,8 +12,8 @@ def _get_device_list():
 
 
 
-def _upload_callback(progress):
-	print(f"Upload progress: {progress*100:.0f}%")
+def _upload_callback(progress,is_upload):
+	print(f"{('Upload' if is_upload else 'Clear')} progress: {progress*100:.0f}%")
 
 
 
