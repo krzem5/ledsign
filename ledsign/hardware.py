@@ -56,6 +56,9 @@ class LEDSignHardware(object):
 	def get_string(self):
 		return "["+" ".join([f"{e:02x}" for e in self._raw_config])+"]"
 
+	def get_user_string(self):
+		return bytearray([e for e in self._raw_config if e]).decode("utf-8")
+
 
 
 class LEDSignSelector(object):
