@@ -88,7 +88,7 @@ class LEDSign(object):
 		return f"{self._serial_number:016x}"
 
 	def get_driver_brightness(self):
-		return ((self._driver_brightness+1)/8 if self._driver_brightness else 0)
+		return round(self._driver_brightness*20/7)/20
 
 	def is_driver_paused(self):
 		return self._driver_program_paused
