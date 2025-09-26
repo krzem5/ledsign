@@ -135,6 +135,8 @@ class LEDSign(object):
 			if (not devices):
 				raise LEDSignDeviceNotFoundError("No device found")
 			path=devices[0]
+		if (not isinstance(path,str)):
+			raise TypeError(f"Expected 'str', got '{path.__class__.__name__}'")
 		handle=None
 		try:
 			handle=LEDSignProtocol.open(path)

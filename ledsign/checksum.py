@@ -1,7 +1,3 @@
-import array
-
-
-
 __all__=["LEDSignCRC"]
 
 

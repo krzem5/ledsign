@@ -197,9 +197,13 @@ class LEDSignProgramBuilder(object):
 				yield (k[8:],getattr(self,k))
 
 	def command_at(self,time):
+		if (not isinstance(time,int) and not isinstance(time,float)):
+			raise TypeError(f"Expected 'int' or 'float', got '{time.__class__.__name__}'")
 		self.time=max(round(time*60),1)
 
 	def command_after(self,time):
+		if (not isinstance(time,int) and not isinstance(time,float)):
+			raise TypeError(f"Expected 'int' or 'float', got '{time.__class__.__name__}'")
 		self.time=max(self.time+round(time*60),1)
 
 	def command_delta_time(self):
@@ -236,12 +240,24 @@ class LEDSignProgramBuilder(object):
 		self.program._duration=self.time
 
 	def command_rgb(self,r,g,b):
+		if (not isinstance(r,int) and not isinstance(r,float)):
+			raise TypeError(f"Expected 'int' or 'float', got '{r.__class__.__name__}'")
+		if (not isinstance(g,int) and not isinstance(g,float)):
+			raise TypeError(f"Expected 'int' or 'float', got '{g.__class__.__name__}'")
+		if (not isinstance(b,int) and not isinstance(b,float)):
+			raise TypeError(f"Expected 'int' or 'float', got '{b.__class__.__name__}'")
 		r=min(max(round(r),0),255)
 		g=min(max(round(g),0),255)
 		b=min(max(round(b),0),255)
 		return (r<<16)+(g<<8)+b
 
 	def command_hsv(self,h,s,v):
+		if (not isinstance(h,int) and not isinstance(h,float)):
+			raise TypeError(f"Expected 'int' or 'float', got '{h.__class__.__name__}'")
+		if (not isinstance(s,int) and not isinstance(s,float)):
+			raise TypeError(f"Expected 'int' or 'float', got '{s.__class__.__name__}'")
+		if (not isinstance(v,int) and not isinstance(v,float)):
+			raise TypeError(f"Expected 'int' or 'float', got '{v.__class__.__name__}'")
 		h=(h%360)/60
 		s=min(max(s,0),1)
 		v*=255

@@ -15,7 +15,7 @@ class LEDSignHardware(object):
 
 	def __init__(self,handle,config):
 		if (not isinstance(config,bytes) or len(config)!=8):
-			raise RuntimeError
+			raise RuntimeError("Direct initialization of LEDSignHardware is not supported")
 		self._raw_config=config
 		self._led_depth=0
 		self._pixels=[]
@@ -66,12 +66,18 @@ class LEDSignSelector(object):
 	def get_led_depth(hardware=None):
 		if (hardware is None):
 			hardware=LEDSignProgramBuilder.instance().program._hardware
+		if (not isinstance(hardware,LEDSignHardware)):
+			raise TypeError(f"Expected 'LEDSignHardware', got '{hardware.__class__.__name__}'")
 		return hardware._led_depth
 
 	@staticmethod
 	def get_bounding_box(mask=-1,hardware=None):
 		if (hardware is None):
 			hardware=LEDSignProgramBuilder.instance().program._hardware
+		if (not isinstance(mask,int)):
+			raise TypeError(f"Expected 'int', got '{mask.__class__.__name__}'")
+		if (not isinstance(hardware,LEDSignHardware)):
+			raise TypeError(f"Expected 'LEDSignHardware', got '{hardware.__class__.__name__}'")
 		out=[0,0,0,0]
 		is_first=True
 		for i,xy in enumerate(hardware._pixels):
@@ -95,6 +101,10 @@ class LEDSignSelector(object):
 	def get_center(mask=-1,hardware=None):
 		if (hardware is None):
 			hardware=LEDSignProgramBuilder.instance().program._hardware
+		if (not isinstance(mask,int)):
+			raise TypeError(f"Expected 'int', got '{mask.__class__.__name__}'")
+		if (not isinstance(hardware,LEDSignHardware)):
+			raise TypeError(f"Expected 'LEDSignHardware', got '{hardware.__class__.__name__}'")
 		cx=0
 		cy=0
 		cn=0
@@ -111,6 +121,10 @@ class LEDSignSelector(object):
 	def get_pixels(mask=-1,letter=None,hardware=None):
 		if (hardware is None):
 			hardware=LEDSignProgramBuilder.instance().program._hardware
+		if (not isinstance(mask,int)):
+			raise TypeError(f"Expected 'int', got '{mask.__class__.__name__}'")
+		if (not isinstance(hardware,LEDSignHardware)):
+			raise TypeError(f"Expected 'LEDSignHardware', got '{hardware.__class__.__name__}'")
 		if (letter is not None):
 			mask&=LEDSignSelector.select_letter(letter,hardware=hardware)
 		m=1
@@ -123,6 +137,12 @@ class LEDSignSelector(object):
 	def get_letter_mask(index,hardware=None):
 		if (hardware is None):
 			hardware=LEDSignProgramBuilder.instance().program._hardware
+		if (not isinstance(index,int)):
+			raise TypeError(f"Expected 'int', got '{index.__class__.__name__}'")
+		if (mask<0):
+			raise IndexError("Letter index out of range")
+		if (not isinstance(hardware,LEDSignHardware)):
+			raise TypeError(f"Expected 'LEDSignHardware', got '{hardware.__class__.__name__}'")
 		for i in range(0,8):
 			if (not hardware._raw_config[i]):
 				continue
@@ -135,6 +155,8 @@ class LEDSignSelector(object):
 	def get_letter_masks(hardware=None):
 		if (hardware is None):
 			hardware=LEDSignProgramBuilder.instance().program._hardware
+		if (not isinstance(hardware,LEDSignHardware)):
+			raise TypeError(f"Expected 'LEDSignHardware', got '{hardware.__class__.__name__}'")
 		j=0
 		for i in range(0,8):
 			if (not hardware._raw_config[i]):
@@ -146,6 +168,8 @@ class LEDSignSelector(object):
 	def get_letter_count(hardware=None):
 		if (hardware is None):
 			hardware=LEDSignProgramBuilder.instance().program._hardware
+		if (not isinstance(hardware,LEDSignHardware)):
+			raise TypeError(f"Expected 'LEDSignHardware', got '{hardware.__class__.__name__}'")
 		out=0
 		for i in range(0,8):
 			if (hardware._raw_config[i]):
@@ -156,6 +180,16 @@ class LEDSignSelector(object):
 	def get_circle_mask(cx,cy,r,hardware=None):
 		if (hardware is None):
 			hardware=LEDSignProgramBuilder.instance().program._hardware
+		if (not isinstance(cx,int) and not isinstance(cx,float)):
+			raise TypeError(f"Expected 'int' or 'float', got '{cx.__class__.__name__}'")
+		if (not isinstance(cy,int) and not isinstance(cy,float)):
+			raise TypeError(f"Expected 'int' or 'float', got '{cy.__class__.__name__}'")
+		if (not isinstance(r,int) and not isinstance(r,float)):
+			raise TypeError(f"Expected 'int' or 'float', got '{r.__class__.__name__}'")
+		if (r<0):
+			raise ValueError(f"Radius must not be negative, got '{r}'")
+		if (not isinstance(hardware,LEDSignHardware)):
+			raise TypeError(f"Expected 'LEDSignHardware', got '{hardware.__class__.__name__}'")
 		r*=r
 		out=0
 		for i,xy in enumerate(hardware._pixels):
