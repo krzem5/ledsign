@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from ledsign.hardware import LEDSignHardware
 from ledsign.program import LEDSignProgram
 from ledsign.program_io import LEDSignCompiledProgram
@@ -16,6 +17,9 @@ LEDSignAccessError=type("LEDSignAccessError",(Exception,),{})
 
 
 class LEDSign(object):
+	"""
+	The return value from :func:`LEDSign.open()`, representing a handle to LED sign device.
+	"""
 	ACCESS_MODE_NONE=0x00
 	ACCESS_MODE_READ=0x01
 	ACCESS_MODE_READ_WRITE=0x02
@@ -26,10 +30,10 @@ class LEDSign(object):
 		ACCESS_MODE_READ_WRITE: "read-write",
 	}
 
-	__slots__=["__weakref__","path","_handle","_access_mode","_psu_current","_storage_size","_hardware","_firmware","_serial_number","_driver_brightness","_driver_program_paused","_driver_temperature","_driver_load","_driver_program_time","_driver_current_usage","_driver_program_offset_divisor","_driver_program_max_offset","_driver_info_sync_next_time","_driver_info_sync_interval","_program"]
+	__slots__=["__weakref__","_path","_handle","_access_mode","_psu_current","_storage_size","_hardware","_firmware","_serial_number","_driver_brightness","_driver_program_paused","_driver_temperature","_driver_load","_driver_program_time","_driver_current_usage","_driver_program_offset_divisor","_driver_program_max_offset","_driver_info_sync_next_time","_driver_info_sync_interval","_program"]
 
 	def __init__(self,path,handle,config_packet):
-		self.path=path
+		self._path=path
 		self._handle=handle
 		self._access_mode=config_packet[6]&0x0f
 		self._psu_current=(config_packet[7]&0x7f)/10
@@ -61,67 +65,132 @@ class LEDSign(object):
 		self._driver_current_usage=driver_status[3]*1e-6
 		self._driver_info_sync_next_time=time.time()+self._driver_info_sync_interval
 
-	def close(self):
+	def close(self) -> None:
+		"""
+		Closes the device handle
+		"""
 		if (self._handle is not None):
 			LEDSignProtocol.close(self._handle)
 		self._handle=None
 
-	def get_access_mode(self):
+	def get_path(self) -> str:
+		"""
+		:func:`get_path`
+		"""
+		return self._path
+
+	def get_access_mode(self) -> int:
+		"""
+		:func:`get_access_mode`
+		"""
 		return self._access_mode
 
-	def get_psu_current(self):
+	def get_psu_current(self) -> float:
+		"""
+		:func:`get_psu_current`
+		"""
 		return self._psu_current
 
-	def get_storage_size(self):
+	def get_storage_size(self) -> int:
+		"""
+		:func:`get_storage_size`
+		"""
 		return self._storage_size
 
-	def get_hardware(self):
+	def get_hardware(self) -> LEDSignHardware:
+		"""
+		:func:`get_hardware`
+		"""
 		return self._hardware
 
-	def get_firmware(self):
+	def get_firmware(self) -> str:
+		"""
+		:func:`get_firmware`
+		"""
 		return self._firmware
 
-	def get_raw_serial_number(self):
+	def get_raw_serial_number(self) -> int:
+		"""
+		:func:`get_raw_serial_number`
+		"""
 		return self._serial_number
 
-	def get_serial_number(self):
+	def get_serial_number(self) -> str:
+		"""
+		:func:`get_serial_number`
+		"""
 		return f"{self._serial_number:016x}"
 
-	def get_driver_brightness(self):
+	def get_driver_brightness(self) -> float:
+		"""
+		:func:`get_driver_brightness`
+		"""
 		return round(self._driver_brightness*20/7)/20
 
-	def is_driver_paused(self):
+	def is_driver_paused(self) -> bool:
+		"""
+		:func:`is_driver_paused`
+		"""
 		return self._driver_program_paused
 
-	def get_driver_temperature(self):
+	def get_driver_temperature(self) -> float:
+		"""
+		:func:`get_driver_temperature`
+		"""
 		self._sync_driver_info()
 		return self._driver_temperature
 
-	def get_driver_load(self):
+	def get_driver_load(self) -> float:
+		"""
+		:func:`get_driver_load`
+		"""
 		self._sync_driver_info()
 		return self._driver_load
 
-	def get_driver_program_time(self):
+	def get_driver_program_time(self) -> float:
+		"""
+		:func:`get_driver_program_time`
+		"""
 		self._sync_driver_info()
 		return self._driver_program_time
 
-	def get_driver_current_usage(self):
+	def get_driver_current_usage(self) -> float:
+		"""
+		:func:`get_driver_current_usage`
+		"""
 		self._sync_driver_info()
 		return self._driver_current_usage
 
-	def get_driver_program_duration(self):
+	def get_driver_program_duration(self) -> float:
+		"""
+		:func:`get_driver_program_duration`
+		"""
 		return self._driver_program_max_offset/self._driver_program_offset_divisor
 
 	def get_driver_status_reload_time(self):
+		"""
+		:func:`get_driver_status_reload_time`
+		"""
 		return self._driver_info_sync_interval
 
-	def set_driver_status_reload_time(self,delta):
+	def set_driver_status_reload_time(self,delta:float) -> float:
+		"""
+		:func:`set_driver_status_reload_time`
+		"""
+		out=self._driver_info_sync_interval
 		self._driver_info_sync_interval=delta
+		return out
 
-	def get_program(self):
+	def get_program(self) -> LEDSignProgram:
+		"""
+		:func:`get_program`
+		"""
 		return self._program
 
-	def upload_program(self,program,callback=None):
+	def upload_program(self,program:LEDSignCompiledProgram,callback:Callable[[float,bool],None]|None=None) -> None:
+		"""
+		:func:`upload_program`
+		"""
 		if (not isinstance(program,LEDSignCompiledProgram)):
 			raise TypeError(f"Expected 'LEDSignCompiledProgram', got '{program.__class__.__name__}'")
 		if (self._access_mode!=LEDSign.ACCESS_MODE_READ_WRITE):
@@ -129,7 +198,10 @@ class LEDSign(object):
 		program._upload_to_device(self,callback)
 
 	@staticmethod
-	def open(path=None):
+	def open(path:str|None=None) -> "LEDSign":
+		"""
+		:func:`open`
+		"""
 		if (path is None):
 			devices=LEDSignProtocol.enumerate()
 			if (not devices):
@@ -148,5 +220,8 @@ class LEDSign(object):
 		return LEDSign(path,handle,config_packet)
 
 	@staticmethod
-	def enumerate():
+	def enumerate() -> list[str]:
+		"""
+		:func:`enumerate`
+		"""
 		return LEDSignProtocol.enumerate()
