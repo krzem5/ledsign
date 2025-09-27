@@ -20,11 +20,11 @@ class LEDSign(object):
 	"""
 	The return value from :func:`LEDSign.open()`, representing a handle to LED sign device.
 	"""
-	ACCESS_MODE_NONE=0x00
-	ACCESS_MODE_READ=0x01
-	ACCESS_MODE_READ_WRITE=0x02
+	ACCESS_MODE_NONE:int=0x00
+	ACCESS_MODE_READ:int=0x01
+	ACCESS_MODE_READ_WRITE:int=0x02
 
-	ACCESS_MODES={
+	ACCESS_MODES:dict[int,str]={
 		ACCESS_MODE_NONE: "none",
 		ACCESS_MODE_READ: "read-only",
 		ACCESS_MODE_READ_WRITE: "read-write",
@@ -32,7 +32,7 @@ class LEDSign(object):
 
 	__slots__=["__weakref__","_path","_handle","_access_mode","_psu_current","_storage_size","_hardware","_firmware","_serial_number","_driver_brightness","_driver_program_paused","_driver_temperature","_driver_load","_driver_program_time","_driver_current_usage","_driver_program_offset_divisor","_driver_program_max_offset","_driver_info_sync_next_time","_driver_info_sync_interval","_program"]
 
-	def __init__(self,path,handle,config_packet):
+	def __init__(self,path,handle,config_packet) -> None:
 		self._path=path
 		self._handle=handle
 		self._access_mode=config_packet[6]&0x0f
@@ -49,13 +49,13 @@ class LEDSign(object):
 		self._driver_info_sync_interval=0.5
 		self._program=LEDSignProgram._create_unloaded_from_device(self,config_packet[3],config_packet[4])
 
-	def __del__(self):
+	def __del__(self) -> None:
 		self.close()
 
-	def __repr__(self):
+	def __repr__(self) -> str:
 		return f"<LEDSign id={self._serial_number:016x} fw={self._firmware}>"
 
-	def _sync_driver_info(self):
+	def _sync_driver_info(self) -> None:
 		if (time.time()<self._driver_info_sync_next_time):
 			return
 		driver_status=LEDSignProtocol.process_packet(self._handle,LEDSignProtocol.PACKET_TYPE_LED_DRIVER_STATUS_RESPONSE,LEDSignProtocol.PACKET_TYPE_LED_DRIVER_STATUS_REQUEST)
@@ -67,7 +67,7 @@ class LEDSign(object):
 
 	def close(self) -> None:
 		"""
-		Closes the device handle
+		:func:`close`
 		"""
 		if (self._handle is not None):
 			LEDSignProtocol.close(self._handle)

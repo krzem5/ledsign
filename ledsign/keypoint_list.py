@@ -5,7 +5,7 @@ __all__=["LEDSignKeypoint","LEDSignKeypointList"]
 class LEDSignKeypoint(object):
 	__slots__=["rgb","end","duration","mask","_frame","_key","_subtree_mask","_parent","_color","_nodes"]
 
-	def __init__(self,rgb,end,duration,mask,frame):
+	def __init__(self,rgb,end,duration,mask,frame) -> None:
 		self.rgb=rgb
 		self.end=end
 		self.duration=duration
@@ -17,7 +17,7 @@ class LEDSignKeypoint(object):
 		self._color=0
 		self._nodes=[None,None]
 
-	def __repr__(self):
+	def __repr__(self) -> str:
 		return f"<LEDSignKeypoint color=#{self.rgb:06x} duration={self.duration/60:.3f}s end={self.end/60:.3f}s mask={self.mask:x}>"
 
 

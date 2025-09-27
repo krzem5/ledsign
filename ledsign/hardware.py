@@ -13,7 +13,7 @@ class LEDSignHardware(object):
 
 	__slots__=["_raw_config","_led_depth","_pixels","_pixel_count","_max_x","_max_y","_mask"]
 
-	def __init__(self,handle,config):
+	def __init__(self,handle,config) -> None:
 		if (not isinstance(config,bytes) or len(config)!=8):
 			raise RuntimeError("Direct initialization of LEDSignHardware is not supported")
 		self._raw_config=config
@@ -47,23 +47,35 @@ class LEDSignHardware(object):
 				self._pixels.append(None)
 		self._max_x=max(self._max_x,0)
 
-	def __repr__(self):
+	def __repr__(self) -> str:
 		return f"<LEDSignHardware config={self.get_string()} pixels={self._pixel_count}>"
 
-	def get_raw(self):
+	def get_raw(self) -> bytes:
+		"""
+		:func:`get_raw`
+		"""
 		return self._raw_config
 
-	def get_string(self):
+	def get_string(self) -> str:
+		"""
+		:func:`get_string`
+		"""
 		return "["+" ".join([f"{e:02x}" for e in self._raw_config])+"]"
 
-	def get_user_string(self):
+	def get_user_string(self) -> str:
+		"""
+		:func:`get_user_string`
+		"""
 		return bytearray([e for e in self._raw_config if e]).decode("utf-8")
 
 
 
 class LEDSignSelector(object):
 	@staticmethod
-	def get_led_depth(hardware=None):
+	def get_led_depth(hardware:LEDSignHardware|None=None):
+		"""
+		:func:`get_led_depth`
+		"""
 		if (hardware is None):
 			hardware=LEDSignProgramBuilder.instance().program._hardware
 		if (not isinstance(hardware,LEDSignHardware)):
@@ -71,7 +83,10 @@ class LEDSignSelector(object):
 		return hardware._led_depth
 
 	@staticmethod
-	def get_bounding_box(mask=-1,hardware=None):
+	def get_bounding_box(mask:int=-1,hardware:LEDSignHardware|None=None):
+		"""
+		:func:`get_bounding_box`
+		"""
 		if (hardware is None):
 			hardware=LEDSignProgramBuilder.instance().program._hardware
 		if (not isinstance(mask,int)):
@@ -98,7 +113,10 @@ class LEDSignSelector(object):
 		return out
 
 	@staticmethod
-	def get_center(mask=-1,hardware=None):
+	def get_center(mask:int=-1,hardware:LEDSignHardware|None=None):
+		"""
+		:func:`get_center`
+		"""
 		if (hardware is None):
 			hardware=LEDSignProgramBuilder.instance().program._hardware
 		if (not isinstance(mask,int)):
@@ -118,7 +136,10 @@ class LEDSignSelector(object):
 		return (cx/cn,cy/cn)
 
 	@staticmethod
-	def get_pixels(mask=-1,letter=None,hardware=None):
+	def get_pixels(mask:int=-1,letter:int|None=None,hardware:LEDSignHardware|None=None):
+		"""
+		:func:`get_pixels`
+		"""
 		if (hardware is None):
 			hardware=LEDSignProgramBuilder.instance().program._hardware
 		if (not isinstance(mask,int)):
@@ -134,7 +155,10 @@ class LEDSignSelector(object):
 			m<<=1
 
 	@staticmethod
-	def get_letter_mask(index,hardware=None):
+	def get_letter_mask(index:int,hardware:LEDSignHardware|None=None):
+		"""
+		:func:`get_letter_mask`
+		"""
 		if (hardware is None):
 			hardware=LEDSignProgramBuilder.instance().program._hardware
 		if (not isinstance(index,int)):
@@ -152,7 +176,10 @@ class LEDSignSelector(object):
 		raise IndexError("Letter index out of range")
 
 	@staticmethod
-	def get_letter_masks(hardware=None):
+	def get_letter_masks(hardware:LEDSignHardware|None=None):
+		"""
+		:func:`get_letter_masks`
+		"""
 		if (hardware is None):
 			hardware=LEDSignProgramBuilder.instance().program._hardware
 		if (not isinstance(hardware,LEDSignHardware)):
@@ -165,7 +192,10 @@ class LEDSignSelector(object):
 			j+=1
 
 	@staticmethod
-	def get_letter_count(hardware=None):
+	def get_letter_count(hardware:LEDSignHardware|None=None):
+		"""
+		:func:`get_letter_count`
+		"""
 		if (hardware is None):
 			hardware=LEDSignProgramBuilder.instance().program._hardware
 		if (not isinstance(hardware,LEDSignHardware)):
@@ -177,7 +207,10 @@ class LEDSignSelector(object):
 		return out
 
 	@staticmethod
-	def get_circle_mask(cx,cy,r,hardware=None):
+	def get_circle_mask(cx:int|float,cy:int|float,r:int|float,hardware:LEDSignHardware|None=None):
+		"""
+		:func:`get_circle_mask`
+		"""
 		if (hardware is None):
 			hardware=LEDSignProgramBuilder.instance().program._hardware
 		if (not isinstance(cx,int) and not isinstance(cx,float)):

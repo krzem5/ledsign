@@ -1,3 +1,4 @@
+from collections.abc import Callable,Iterator
 from ledsign.checksum import LEDSignCRC
 from ledsign.keypoint_list import LEDSignKeypoint,LEDSignKeypointList
 from ledsign.program_io import LEDSignCompiledProgram,LEDSignProgramParser
@@ -22,7 +23,7 @@ LEDSignProgramError=type("LEDSignProgramError",(Exception,),{})
 class LEDSignProgram(object):
 	__slots__=["_hardware","_duration","_keypoint_list","_load_parameters","_builder_ready","_has_error"]
 
-	def __init__(self,device,file_path=None):
+	def __init__(self,device,file_path=None) -> None:
 		if (not isinstance(device,ledsign.device.LEDSign)):
 			raise TypeError(f"Expected 'LEDSign', got '{device.__class__.__name__}'")
 		if (file_path is not None and not isinstance(file_path,str)):
@@ -36,10 +37,13 @@ class LEDSignProgram(object):
 		if (file_path is not None):
 			self._load_from_file(file_path)
 
-	def __repr__(self):
+	def __repr__(self) -> str:
 		return f"<LEDSignProgram{('[unloaded]' if self._load_parameters is not None else '')} hardware={self._hardware.get_string()} duration={self._duration/60:.3f}s>"
 
-	def __call__(self,func,skip_verify=False):
+	def __call__(self,func:Callable[[],None],skip_verify:bool=False) -> "LEDSignProgram":
+		"""
+		:func:`__call__`
+		"""
 		self._builder_ready=True
 		builder=LEDSignProgramBuilder(self)
 		self._builder_ready=False
@@ -89,19 +93,28 @@ class LEDSignProgram(object):
 		parser.update(data)
 		parser.terminate()
 
-	def compile(self,bypass_errors=False):
+	def compile(self,bypass_errors:bool=False) -> LEDSignCompiledProgram:
+		"""
+		:func:`compile`
+		"""
 		self.load()
 		if (self._has_error and not bypass_errors):
 			raise LEDSignProgramError("Unresolved program errors")
 		return LEDSignCompiledProgram(self,False)
 
-	def save(self,file_path,bypass_errors=False):
+	def save(self,file_path:str,bypass_errors:bool=False) -> None:
+		"""
+		:func:`save`
+		"""
 		self.load()
 		if (self._has_error and not bypass_errors):
 			raise LEDSignProgramError("Unresolved program errors")
 		LEDSignCompiledProgram(self,True)._save_to_file(file_path)
 
-	def load(self):
+	def load(self) -> None:
+		"""
+		:func:`load`
+		"""
 		if (self._load_parameters is None):
 			return
 		load_parameters=self._load_parameters
@@ -131,10 +144,16 @@ class LEDSignProgram(object):
 			raise LEDSignProgramError("Mismatched program checksum")
 		parser.terminate()
 
-	def get_keypoints(self,mask=-1):
+	def get_keypoints(self,mask:int=-1) -> Iterator[LEDSignKeypoint]:
+		"""
+		:func:`get_keypoints`
+		"""
 		return self._keypoint_list.iterate(mask)
 
-	def verify(self):
+	def verify(self) -> bool:
+		"""
+		:func:`verify`
+		"""
 		self._has_error=False
 		kp=self._keypoint_list.lookup_increasing(0,-1)
 		while (kp is not None):
@@ -149,6 +168,7 @@ class LEDSignProgram(object):
 					self._has_error=True
 				entry=self._keypoint_list.lookup_decreasing(entry._key-1,kp.mask)
 			kp=self._keypoint_list.lookup_increasing(kp._key+1,-1)
+		return not self._has_error
 
 	@staticmethod
 	def _create_unloaded_from_device(device,ctrl,crc):
