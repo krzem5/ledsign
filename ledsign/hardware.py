@@ -1,3 +1,4 @@
+from collections.abc import Iterator
 from ledsign.program import LEDSignProgramBuilder
 from ledsign.protocol import LEDSignProtocol
 import array
@@ -9,6 +10,10 @@ __all__=["LEDSignHardware","LEDSignSelector"]
 
 
 class LEDSignHardware(object):
+	"""
+	Read-only representation of a :py:class:`LEDSign` device's hardware, returned by :py:func:`LEDSign.get_hardware()`.
+	"""
+
 	SCALE=1/768
 
 	__slots__=["_raw_config","_led_depth","_pixels","_pixel_count","_max_x","_max_y","_mask"]
@@ -52,27 +57,32 @@ class LEDSignHardware(object):
 
 	def get_raw(self) -> bytes:
 		"""
-		:func:`get_raw`
+		Returns the raw, 8-byte hardware configuration sequence returned by the device.
 		"""
 		return self._raw_config
 
 	def get_string(self) -> str:
 		"""
-		:func:`get_string`
+		Returns a pretty-printed version of the raw device hardware configuration returned by :py:func:`get_raw`.
 		"""
 		return "["+" ".join([f"{e:02x}" for e in self._raw_config])+"]"
 
 	def get_user_string(self) -> str:
 		"""
-		:func:`get_user_string`
+		Returns a user-friendly string identifying the device's hardware configuration.
 		"""
 		return bytearray([e for e in self._raw_config if e]).decode("utf-8")
 
 
 
 class LEDSignSelector(object):
+	"""
+	This static class contains several common pattern generators, to be used within a :py:class:`LEDSignProgramBuilder` context.
+
+	Every method accepts an optional :python:`hardware` argument, which when omitted will default to the one used by the current :py:class:`LEDSignProgramBuilder` instance.
+	"""
 	@staticmethod
-	def get_led_depth(hardware:LEDSignHardware|None=None):
+	def get_led_depth(hardware:LEDSignHardware|None=None) -> int:
 		"""
 		:func:`get_led_depth`
 		"""
@@ -83,7 +93,7 @@ class LEDSignSelector(object):
 		return hardware._led_depth
 
 	@staticmethod
-	def get_bounding_box(mask:int=-1,hardware:LEDSignHardware|None=None):
+	def get_bounding_box(mask:int=-1,hardware:LEDSignHardware|None=None) -> tuple[float,float,float,float]:
 		"""
 		:func:`get_bounding_box`
 		"""
@@ -93,7 +103,7 @@ class LEDSignSelector(object):
 			raise TypeError(f"Expected 'int', got '{mask.__class__.__name__}'")
 		if (not isinstance(hardware,LEDSignHardware)):
 			raise TypeError(f"Expected 'LEDSignHardware', got '{hardware.__class__.__name__}'")
-		out=[0,0,0,0]
+		out=[0.0,0.0,0.0,0.0]
 		is_first=True
 		for i,xy in enumerate(hardware._pixels):
 			if (xy is not None and (mask&1)):
@@ -110,10 +120,10 @@ class LEDSignSelector(object):
 					out[2]=max(out[2],x)
 					out[3]=max(out[3],y)
 			mask>>=1
-		return out
+		return tuple(out)
 
 	@staticmethod
-	def get_center(mask:int=-1,hardware:LEDSignHardware|None=None):
+	def get_center(mask:int=-1,hardware:LEDSignHardware|None=None) -> tuple[float,float]:
 		"""
 		:func:`get_center`
 		"""
@@ -123,8 +133,8 @@ class LEDSignSelector(object):
 			raise TypeError(f"Expected 'int', got '{mask.__class__.__name__}'")
 		if (not isinstance(hardware,LEDSignHardware)):
 			raise TypeError(f"Expected 'LEDSignHardware', got '{hardware.__class__.__name__}'")
-		cx=0
-		cy=0
+		cx=0.0
+		cy=0.0
 		cn=0
 		for i,xy in enumerate(hardware._pixels):
 			if (xy is not None and (mask&1)):
@@ -136,7 +146,7 @@ class LEDSignSelector(object):
 		return (cx/cn,cy/cn)
 
 	@staticmethod
-	def get_pixels(mask:int=-1,letter:int|None=None,hardware:LEDSignHardware|None=None):
+	def get_pixels(mask:int=-1,letter:int|None=None,hardware:LEDSignHardware|None=None) -> Iterator[tuple[float,float,int]]:
 		"""
 		:func:`get_pixels`
 		"""
@@ -155,7 +165,7 @@ class LEDSignSelector(object):
 			m<<=1
 
 	@staticmethod
-	def get_letter_mask(index:int,hardware:LEDSignHardware|None=None):
+	def get_letter_mask(index:int,hardware:LEDSignHardware|None=None) -> Iterator[int]:
 		"""
 		:func:`get_letter_mask`
 		"""
@@ -176,7 +186,7 @@ class LEDSignSelector(object):
 		raise IndexError("Letter index out of range")
 
 	@staticmethod
-	def get_letter_masks(hardware:LEDSignHardware|None=None):
+	def get_letter_masks(hardware:LEDSignHardware|None=None) -> Iterator[tuple[int,str,int]]:
 		"""
 		:func:`get_letter_masks`
 		"""
@@ -192,7 +202,7 @@ class LEDSignSelector(object):
 			j+=1
 
 	@staticmethod
-	def get_letter_count(hardware:LEDSignHardware|None=None):
+	def get_letter_count(hardware:LEDSignHardware|None=None) -> int:
 		"""
 		:func:`get_letter_count`
 		"""
@@ -207,7 +217,7 @@ class LEDSignSelector(object):
 		return out
 
 	@staticmethod
-	def get_circle_mask(cx:int|float,cy:int|float,r:int|float,hardware:LEDSignHardware|None=None):
+	def get_circle_mask(cx:int|float,cy:int|float,r:int|float,hardware:LEDSignHardware|None=None) -> int:
 		"""
 		:func:`get_circle_mask`
 		"""
