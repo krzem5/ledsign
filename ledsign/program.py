@@ -3,6 +3,7 @@ from ledsign.checksum import LEDSignCRC
 from ledsign.keypoint_list import LEDSignKeypoint,LEDSignKeypointList
 from ledsign.program_io import LEDSignCompiledProgram,LEDSignProgramParser
 from ledsign.protocol import LEDSignProtocol
+from typing import Union
 import ledsign.device
 import os
 import struct
@@ -203,12 +204,41 @@ class LEDSignProgram(object):
 
 
 class LEDSignProgramBuilder(object):
-	COMMAND_SHORCUTS={
+	"""
+	:py:class:`LEDSignProgramBuilder`
+
+	+--------------------+-------------+-------------------------------+
+	| Command            | Shortcut    | Builder method                |
+	+====================+=============+===============================+
+	| :func:`after`      | :func:`af`  | :py:func:`command_after`      |
+	+--------------------+-------------+-------------------------------+
+	| :func:`at`         | ---         | :py:func:`command_at`         |
+	+--------------------+-------------+-------------------------------+
+	| :func:`delta_time` | :func:`dt`  | :py:func:`command_delta_time` |
+	+--------------------+-------------+-------------------------------+
+	| :func:`end`        | :func:`ed`  | :py:func:`command_end`        |
+	+--------------------+-------------+-------------------------------+
+	| :func:`hsv`        | ---         | :py:func:`command_hsv`        |
+	+--------------------+-------------+-------------------------------+
+	| :func:`hardware`   | :func:`hw`  | :py:func:`command_hardware`   |
+	+--------------------+-------------+-------------------------------+
+	| :func:`keypoint`   | :func:`kp`  | :py:func:`command_keypoint`   |
+	+--------------------+-------------+-------------------------------+
+	| :func:`rgb`        | ---         | :py:func:`command_rgb`        |
+	+--------------------+-------------+-------------------------------+
+	| :func:`time`       | :func:`tm`  | :py:func:`command_time`       |
+	+--------------------+-------------+-------------------------------+
+	"""
+
+	COMMANDS={
 		"af": "after",
+		"at": "at",
 		"dt": "delta_time",
 		"ed": "end",
+		"hsv": "hsv",
 		"hw": "hardware",
 		"kp": "keypoint",
+		"rgb": "rgb",
 		"tm": "time"
 	}
 
@@ -232,11 +262,11 @@ class LEDSignProgramBuilder(object):
 			LEDSignProgramBuilder._global_lock.release()
 
 	def _get_function_list(self) -> Iterator[tuple[str,Callable]]:
-		for k,v in LEDSignProgramBuilder.COMMAND_SHORCUTS.items():
-			yield (k,getattr(self,"command_"+v))
-		for k in dir(self):
-			if (k.lower().startswith("command_")):
-				yield (k[8:],getattr(self,k))
+		for k,v in LEDSignProgramBuilder.COMMANDS.items():
+			func=getattr(self,"command_"+v)
+			yield (k,func)
+			if (k!=v):
+				yield (v,func)
 
 	def command_at(self,time:int|float) -> float:
 		"""
@@ -355,7 +385,7 @@ class LEDSignProgramBuilder(object):
 		return (v<<16)+(p<<8)+q
 
 	@staticmethod
-	def instance() -> "LEDSignProgramBuilder":
+	def instance() -> Union["LEDSignProgramBuilder",None]:
 		"""
 		Returns the current active instance of :py:class:`LEDSignProgramBuilder`, or :python:`None` if none are active.
 		"""

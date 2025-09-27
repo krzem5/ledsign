@@ -248,7 +248,6 @@ class LEDSignCompiledProgram(object):
 		if (callback is not None):
 			callback(1.0,True)
 		device._driver_program_offset_divisor=self._offset_divisor
-		device._driver_program_max_offset=self._max_offset
 		device._driver_info_sync_next_time=0
 		device._program=None
 
