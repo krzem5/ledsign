@@ -15,9 +15,9 @@ device=LEDSign.open()
 
 @LEDSignProgram(device)
 def program():
-	kp("#ffffff",-1)
+	kp("#ffffff")
 	af(dt())
-	kp("#000000",-1)
+	kp("#000000")
 	af(dt()*3)
 	end()
 

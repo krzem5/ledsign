@@ -84,7 +84,7 @@ class LEDSignSelector(object):
 	@staticmethod
 	def get_led_depth(hardware:LEDSignHardware|None=None) -> int:
 		"""
-		:func:`get_led_depth`
+		Returns the longest LED chain present in the current hardware configuration.
 		"""
 		if (hardware is None):
 			hardware=LEDSignProgramBuilder.instance().program._hardware
@@ -95,7 +95,7 @@ class LEDSignSelector(object):
 	@staticmethod
 	def get_bounding_box(mask:int=-1,hardware:LEDSignHardware|None=None) -> tuple[float,float,float,float]:
 		"""
-		:func:`get_bounding_box`
+		Returns the bounding box :python:`(sx, sy, ex, ey)` of all pixels selected by the given mask. If no mask is given, the bounding box of all pixels is computed.
 		"""
 		if (hardware is None):
 			hardware=LEDSignProgramBuilder.instance().program._hardware
@@ -123,9 +123,11 @@ class LEDSignSelector(object):
 		return tuple(out)
 
 	@staticmethod
-	def get_center(mask:int=-1,hardware:LEDSignHardware|None=None) -> tuple[float,float]:
+	def get_center(mask:int=-1,weighted:bool=False,hardware:LEDSignHardware|None=None) -> tuple[float,float]:
 		"""
-		:func:`get_center`
+		Returns the center :python:`(cx, cy)` of all pixels selected by the given mask. If no mask is given, the bounding box of all pixels is computed.
+
+		If the :python:`weighted` flag is set, the center is weighted across all pixels locations. Otherwise, the center of the bounding box returned by :py:func:`get_bounding_box` is calculated.
 		"""
 		if (hardware is None):
 			hardware=LEDSignProgramBuilder.instance().program._hardware
@@ -133,6 +135,9 @@ class LEDSignSelector(object):
 			raise TypeError(f"Expected 'int', got '{mask.__class__.__name__}'")
 		if (not isinstance(hardware,LEDSignHardware)):
 			raise TypeError(f"Expected 'LEDSignHardware', got '{hardware.__class__.__name__}'")
+		if (not weighted):
+			bbox=LEDSignSelector.get_bounding_box(mask,hardware)
+			return ((bbox[0]+bbox[2])/2,(bbox[1]+bbox[3])/2)
 		cx=0.0
 		cy=0.0
 		cn=0
@@ -148,7 +153,9 @@ class LEDSignSelector(object):
 	@staticmethod
 	def get_pixels(mask:int=-1,letter:int|None=None,hardware:LEDSignHardware|None=None) -> Iterator[tuple[float,float,int]]:
 		"""
-		:func:`get_pixels`
+		Returns all pixel :python:`(x, y, mask)` tuples selected by the given mask. If no mask is given, the bounding box of all pixels is computed.
+
+		If the letter index is given, only pixels from the given letter are processed.
 		"""
 		if (hardware is None):
 			hardware=LEDSignProgramBuilder.instance().program._hardware
@@ -157,7 +164,7 @@ class LEDSignSelector(object):
 		if (not isinstance(hardware,LEDSignHardware)):
 			raise TypeError(f"Expected 'LEDSignHardware', got '{hardware.__class__.__name__}'")
 		if (letter is not None):
-			mask&=LEDSignSelector.select_letter(letter,hardware=hardware)
+			mask&=LEDSignSelector.get_letter_mask(letter,hardware=hardware)
 		m=1
 		for i,xy in enumerate(hardware._pixels):
 			if (xy is not None and (mask&m)):
@@ -165,9 +172,9 @@ class LEDSignSelector(object):
 			m<<=1
 
 	@staticmethod
-	def get_letter_mask(index:int,hardware:LEDSignHardware|None=None) -> Iterator[int]:
+	def get_letter_mask(index:int,hardware:LEDSignHardware|None=None) -> int:
 		"""
-		:func:`get_letter_mask`
+		Returns the pixel mask corresponding to the letter selected by :python:`index`. Raises an :py:exc:`IndexError` if the index is out of bounds.
 		"""
 		if (hardware is None):
 			hardware=LEDSignProgramBuilder.instance().program._hardware
@@ -188,7 +195,7 @@ class LEDSignSelector(object):
 	@staticmethod
 	def get_letter_masks(hardware:LEDSignHardware|None=None) -> Iterator[tuple[int,str,int]]:
 		"""
-		:func:`get_letter_masks`
+		Returns all letter :python:`(index, character, mask)` tuples of the current hardware configuration.
 		"""
 		if (hardware is None):
 			hardware=LEDSignProgramBuilder.instance().program._hardware
@@ -204,7 +211,7 @@ class LEDSignSelector(object):
 	@staticmethod
 	def get_letter_count(hardware:LEDSignHardware|None=None) -> int:
 		"""
-		:func:`get_letter_count`
+		Returns the number of letters in the current hardware configuration.
 		"""
 		if (hardware is None):
 			hardware=LEDSignProgramBuilder.instance().program._hardware
@@ -219,7 +226,7 @@ class LEDSignSelector(object):
 	@staticmethod
 	def get_circle_mask(cx:int|float,cy:int|float,r:int|float,hardware:LEDSignHardware|None=None) -> int:
 		"""
-		:func:`get_circle_mask`
+		Returns a mask selecting all pixels within the given circle.
 		"""
 		if (hardware is None):
 			hardware=LEDSignProgramBuilder.instance().program._hardware

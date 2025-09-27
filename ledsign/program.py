@@ -260,7 +260,7 @@ class LEDSignProgramBuilder(object):
 		"""
 		return self.program._hardware
 
-	def command_keypoint(self,rgb:int|str,mask:int,duration:int|float|None=None,time:int|float|None=None) -> None:
+	def command_keypoint(self,rgb:int|str,mask:int=-1,duration:int|float|None=None,time:int|float|None=None) -> None:
 		"""
 		:func:`command_at`
 		"""

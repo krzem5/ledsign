@@ -10,9 +10,9 @@ device=LEDSign.open()
 @LEDSignProgram(device)
 def program():
 	for color in ["#ff0000","#ffff00","#00ff00","#00ffff","#0000ff","#ff00ff"]:
-		kp(color,-1)
+		kp(color)
 		af(dt()*5)
-		kp("#000000",-1)
+		kp("#000000")
 		af(dt()*8)
 	end()
 
