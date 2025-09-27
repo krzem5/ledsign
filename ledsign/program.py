@@ -79,12 +79,15 @@ class LEDSignProgram(object):
 			builder._change_lock(False)
 		return self
 
-	def _add_raw_keypoint(self,rgb,end,duration,mask,frame):
+	def _add_raw_keypoint(self,rgb:int,end:int,duration:int,mask:int,frame:object) -> LEDSignKeypoint|None:
 		mask&=self._hardware._mask
-		if (mask):
-			self._keypoint_list.insert(LEDSignKeypoint(rgb,end,duration,mask,frame))
+		if (not mask):
+			return None
+		out=LEDSignKeypoint(rgb,end,duration,mask,frame)
+		self._keypoint_list.insert(out)
+		return out
 
-	def _load_from_file(self,file_path):
+	def _load_from_file(self,file_path:str) -> None:
 		size=os.stat(file_path).st_size
 		if (size<8 or (size&3)):
 			raise LEDSignProgramError("Invalid program")
@@ -188,7 +191,7 @@ class LEDSignProgram(object):
 		return not self._has_error
 
 	@staticmethod
-	def _create_unloaded_from_device(device,ctrl,crc):
+	def _create_unloaded_from_device(device:"LEDSign",ctrl:int,crc:int):
 		out=LEDSignProgram(device)
 		out._duration=(ctrl>>9)//max(ctrl&0xff,1)
 		if (ctrl>>8):
@@ -212,13 +215,13 @@ class LEDSignProgramBuilder(object):
 
 	__slots__=["program","time"]
 
-	def __init__(self,program) -> None:
+	def __init__(self,program:LEDSignProgram) -> None:
 		if (not isinstance(program,LEDSignProgram) or not program._builder_ready):
 			raise RuntimeError("Direct initialization of LEDSignProgramBuilder is not supported")
 		self.program=program
 		self.time=1
 
-	def _change_lock(self,enable):
+	def _change_lock(self,enable:bool) -> None:
 		if (enable):
 			LEDSignProgramBuilder._global_lock.acquire()
 			LEDSignProgramBuilder._current_instance=self
@@ -226,7 +229,7 @@ class LEDSignProgramBuilder(object):
 			LEDSignProgramBuilder._current_instance=None
 			LEDSignProgramBuilder._global_lock.release()
 
-	def _get_function_list(self):
+	def _get_function_list(self) -> Iterator[tuple[str,Callable]]:
 		for k,v in LEDSignProgramBuilder.COMMAND_SHORCUTS.items():
 			yield (k,getattr(self,"command_"+v))
 		for k in dir(self):
@@ -293,7 +296,7 @@ class LEDSignProgramBuilder(object):
 			time=max(round(time*60),1)
 		else:
 			raise TypeError(f"Expected 'int' or 'float', got '{time.__class__.__name__}'")
-		self.program._add_raw_keypoint(rgb,time,duration,mask,(sys._getframe(1) if hasattr(sys,"_getframe") else None))
+		return self.program._add_raw_keypoint(rgb,time,duration,mask,(sys._getframe(1) if hasattr(sys,"_getframe") else None))
 
 	def command_end(self) -> None:
 		"""

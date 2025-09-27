@@ -1,3 +1,7 @@
+from collections.abc import Iterator
+
+
+
 __all__=["LEDSignKeypoint","LEDSignKeypointList"]
 
 
@@ -66,11 +70,11 @@ class LEDSignKeypoint(object):
 
 
 class LEDSignKeypointList(object):
-	def __init__(self):
+	def __init__(self) -> None:
 		self.root=None
 		self._index=0
 
-	def _rotate_subtree(self,x,dir):
+	def _rotate_subtree(self,x:LEDSignKeypoint,dir:int) -> None:
 		y=x._parent
 		z=x._nodes[dir^1]
 		x._nodes[dir^1]=z._nodes[dir]
@@ -96,10 +100,10 @@ class LEDSignKeypointList(object):
 			if (y._nodes[dir^1] is not None):
 				y._subtree_mask|=y._nodes[dir^1]._subtree_mask
 
-	def clear(self):
+	def clear(self) -> None:
 		self.root=None
 
-	def lookup_decreasing(self,key,mask):
+	def lookup_decreasing(self,key:int,mask:int) -> LEDSignKeypoint|None:
 		x=self.root
 		while (x is not None and (x._key!=key or not (x.mask&mask))):
 			if (key>x._key):
@@ -123,7 +127,7 @@ class LEDSignKeypointList(object):
 			key=x._key
 		return x
 
-	def lookup_increasing(self,key,mask):
+	def lookup_increasing(self,key:int,mask:int) -> LEDSignKeypoint|None:
 		x=self.root
 		while (x is not None and (x._key!=key or not (x.mask&mask))):
 			if (key<x._key):
@@ -147,7 +151,7 @@ class LEDSignKeypointList(object):
 			key=x._key
 		return x
 
-	def insert(self,x):
+	def insert(self,x:LEDSignKeypoint) -> None:
 		x._key=(x.end<<44)|self._index
 		x._parent=None
 		x._nodes=[None,None]
@@ -201,7 +205,7 @@ class LEDSignKeypointList(object):
 				y._subtree_mask|=y._nodes[1]._subtree_mask
 			y=y._parent
 
-	def iterate(self,mask):
+	def iterate(self,mask:int) -> Iterator[LEDSignKeypoint]:
 		entry=self.lookup_increasing(0,mask)
 		while (entry is not None):
 			yield entry

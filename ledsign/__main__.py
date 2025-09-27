@@ -5,19 +5,19 @@ import optparse
 
 
 _device_list_cache=[]
-def _get_device_list():
+def _get_device_list() -> list[str]:
 	if (not _device_list_cache):
 		_device_list_cache.extend(LEDSign.enumerate())
 	return _device_list_cache
 
 
 
-def _upload_callback(progress,is_upload):
+def _upload_callback(progress:float,is_upload:bool) -> None:
 	print(f"{('Upload' if is_upload else 'Clear')} progress: {progress*100:.0f}%")
 
 
 
-def main():
+def main() -> None:
 	parser=optparse.OptionParser(prog="ledsign",version="%prog v0.6.0")
 	parser.add_option("-d","--device",metavar="DEVICE_PATH|DEVICE_INDEX",dest="device_path",help="open device at DEVICE_PATH, or the device at index DEVICE_INDEX (leave empty to use default device path)")
 	parser.add_option("-e","--enumerate",action="store_true",dest="enumerate",help="enumerate all available devices")

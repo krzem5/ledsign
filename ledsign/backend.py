@@ -33,7 +33,7 @@ class LEDSignProtocolBackendWindows(object):
 	FILE_ATTRIBUTE_NORMAL=0x00000080
 	FILE_FLAG_OVERLAPPED=0x40000000
 
-	def __init__(self):
+	def __init__(self) -> None:
 		import ctypes.wintypes
 		GUID=type("GUID",(ctypes.Structure,),{"_fields_":[("Data1",ctypes.wintypes.DWORD),("Data2",ctypes.wintypes.WORD),("Data3",ctypes.wintypes.WORD),("Data4",ctypes.wintypes.BYTE*8)]})
 		PGUID=ctypes.POINTER(GUID)
@@ -66,7 +66,7 @@ class LEDSignProtocolBackendWindows(object):
 		self.WinUsb_WritePipe.restype=ctypes.wintypes.BOOL
 		self.winusb_registry_guid_ref=ctypes.byref(GUID.from_buffer(bytearray(b"\x58\x30\xf5\xfc\x7b\x99\x21\x4b\xaf\xd6\xe5\x65\x04\x39\x23\xc1")))
 
-	def enumerate(self):
+	def enumerate(self) -> list[str]:
 		while (True):
 			length=ctypes.wintypes.ULONG(0)
 			if (self.CM_Get_Device_Interface_List_SizeA(ctypes.byref(length),self.winusb_registry_guid_ref,0,LEDSignProtocolBackendWindows.CM_GET_DEVICE_INTERFACE_LIST_ALL_DEVICES)):
@@ -79,7 +79,7 @@ class LEDSignProtocolBackendWindows(object):
 				continue
 			raise OSError("CM_Get_Device_Interface_ListA error")
 
-	def open(self,path):
+	def open(self,path:str) -> tuple[int,int]:
 		handle=self.CreateFileA(path.encode("utf-8"),LEDSignProtocolBackendWindows.GENERIC_WRITE|LEDSignProtocolBackendWindows.GENERIC_READ,LEDSignProtocolBackendWindows.FILE_SHARE_READ|LEDSignProtocolBackendWindows.FILE_SHARE_WRITE,0,LEDSignProtocolBackendWindows.OPEN_EXISTING,LEDSignProtocolBackendWindows.FILE_ATTRIBUTE_NORMAL|LEDSignProtocolBackendWindows.FILE_FLAG_OVERLAPPED,0)
 		if (handle==0xffffffffffffffff):
 			raise LEDSignDeviceInUseError("Device already in use")
@@ -95,11 +95,11 @@ class LEDSignProtocolBackendWindows(object):
 			raise LEDSignProtocolError("Unable to reset device, Python API disabled")
 		return (handle,winusb_handle.value)
 
-	def close(self,handles):
+	def close(self,handles:tuple[int,int]) -> None:
 		self.WinUsb_Free(handles[1])
 		self.CloseHandle(handles[0])
 
-	def io_read_write(self,handles,packet):
+	def io_read_write(self,handles:tuple[int,int],packet:bytes) -> bytearray:
 		packet=bytearray(packet)
 		transferred=ctypes.c_ulong(0)
 		if (not self.WinUsb_WritePipe(handles[1],0x04,(ctypes.c_char*len(packet)).from_buffer(packet),len(packet),ctypes.byref(transferred),0) or transferred.value!=len(packet)):
@@ -110,14 +110,14 @@ class LEDSignProtocolBackendWindows(object):
 			raise LEDSignProtocolError("Read from endpoint 84h failed")
 		return bytearray(out)[:transferred.value]
 
-	def io_bulk_read(self,handles,size):
+	def io_bulk_read(self,handles:tuple[int,int],size:int) -> bytearray:
 		out=(ctypes.c_char*size)()
 		transferred=ctypes.c_ulong(0)
 		if (not self.WinUsb_ReadPipe(handles[1],0x85,out,size,ctypes.byref(transferred),0) or transferred.value!=size):
 			raise LEDSignProtocolError("Read from endpoint 85h failed")
 		return bytearray(out)
 
-	def io_bulk_write(self,handles,data):
+	def io_bulk_write(self,handles:tuple[int,int],data) -> None:
 		data=bytearray(data)
 		transferred=ctypes.c_ulong(0)
 		if (not self.WinUsb_WritePipe(handles[1],0x05,(ctypes.c_char*len(data)).from_buffer(data),len(data),ctypes.byref(transferred),0) or transferred.value!=len(data)):
@@ -130,13 +130,13 @@ class LEDSignProtocolBackendLinux(object):
 	USBDEVFS_CLAIMINTERFACE=0x8004550f
 	USBDEVFS_CONTROL=0xc0185500
 
-	def __init__(self):
+	def __init__(self) -> None:
 		import ctypes.util
 		self.ioctl=ctypes.CDLL(ctypes.util.find_library("c"),use_errno=True).ioctl
 		self.ioctl.argtypes=(ctypes.c_int,ctypes.c_ulong,ctypes.c_char_p)
 		self.ioctl.restype=ctypes.c_int
 
-	def enumerate(self):
+	def enumerate(self) -> list[str]:
 		out=[]
 		for name in os.listdir("/sys/bus/usb/devices"):
 			if (not os.path.exists(f"/sys/bus/usb/devices/{name}/idVendor")):
@@ -154,7 +154,7 @@ class LEDSignProtocolBackendLinux(object):
 			out.append(f"/dev/bus/usb/{busnum:03d}/{devnum:03d}")
 		return out
 
-	def open(self,path):
+	def open(self,path:str) -> int:
 		handle=os.open(path,os.O_RDWR)
 		if (self.ioctl(handle,LEDSignProtocolBackendLinux.USBDEVFS_CLAIMINTERFACE,struct.pack("<I",1))<0):
 			raise LEDSignDeviceInUseError("Device already in use")
@@ -164,10 +164,10 @@ class LEDSignProtocolBackendLinux(object):
 			raise LEDSignProtocolError("Unable to reset device, Python API disabled")
 		return handle
 
-	def close(self,handles):
-		os.close(handles)
+	def close(self,handle:int) -> None:
+		os.close(handle)
 
-	def io_read_write(self,handle,packet):
+	def io_read_write(self,handle:int,packet:bytes) -> bytearray:
 		packet=bytearray(packet)
 		if (self.ioctl(handle,LEDSignProtocolBackendLinux.USBDEVFS_BULK,struct.pack("<III4xQ",0x04,len(packet),3000,ctypes.addressof((ctypes.c_uint8*len(packet)).from_buffer(packet))))!=len(packet)):
 			raise LEDSignProtocolError("Write to endpoint 04h failed")
@@ -177,14 +177,13 @@ class LEDSignProtocolBackendLinux(object):
 			raise LEDSignProtocolError("Read from endpoint 84h failed")
 		return bytearray(out)[:ret]
 
-	def io_bulk_read(self,handle,size):
+	def io_bulk_read(self,handle:int,size:int) -> bytearray:
 		out=(ctypes.c_uint8*size)()
 		ret=self.ioctl(handle,LEDSignProtocolBackendLinux.USBDEVFS_BULK,struct.pack("<III4xQ",0x85,size,3000,ctypes.addressof(out)))
 		if (ret!=size):
 			raise LEDSignProtocolError("Read from endpoint 85h failed")
 		return bytearray(out)
 
-	def io_bulk_write(self,handle,data):
-		data=bytearray(data)
+	def io_bulk_write(self,handle:int,data:bytearray) -> None:
 		if (self.ioctl(handle,LEDSignProtocolBackendLinux.USBDEVFS_BULK,struct.pack("<III4xQ",0x05,len(data),3000,ctypes.addressof((ctypes.c_uint8*len(data)).from_buffer(data))))!=len(data)):
 			raise LEDSignProtocolError("Write to endpoint 05h failed")
