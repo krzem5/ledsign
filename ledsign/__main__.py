@@ -55,7 +55,7 @@ def main():
 	device=LEDSign.open(device_path)
 	try:
 		if (options.print_info):
-			print(f"device:\n  path: {device.path}\n  storage: {device.get_storage_size()} B\n  hardware: {device.get_hardware().get_string()} ({device.get_hardware().get_user_string()})\n  firmware: {device.get_firmware()}\n  serial number: {device.get_serial_number()}")
+			print(f"device:\n  path: {device.get_path()}\n  storage: {device.get_storage_size()} B\n  hardware: {device.get_hardware().get_string()} ({device.get_hardware().get_user_string()})\n  firmware: {device.get_firmware()}\n  serial number: {device.get_serial_number_str()}")
 		if (options.print_config):
 			print(f"config:\n  access mode: {device.get_access_mode_str()}\n  power supply: 5V {device.get_psu_current()*1000:.0f}mA ({device.get_psu_current()*5}W)")
 		if (options.print_driver):

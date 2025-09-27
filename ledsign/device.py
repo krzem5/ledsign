@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from ledsign.backend import LEDSignProtocolError
 from ledsign.hardware import LEDSignHardware
 from ledsign.program import LEDSignProgram
 from ledsign.program_io import LEDSignCompiledProgram
@@ -66,7 +67,8 @@ class LEDSign(object):
 		self._program=LEDSignProgram._create_unloaded_from_device(self,config_packet[3],config_packet[4])
 
 	def __del__(self) -> None:
-		self.close()
+		if (self._handle is not None):
+			LEDSignProtocol.close(self._handle)
 
 	def __repr__(self) -> str:
 		return f"<LEDSign id={self._serial_number:016x} fw={self._firmware}>"
@@ -89,17 +91,17 @@ class LEDSign(object):
 
 	def close(self) -> None:
 		"""
-		Closes the underlying device handle. After a call to this function, all other methods will raise an :py:exc:`LEDSignProtocolError`.
+		Closes the underlying device handle. After a call to this function, all methods except for :py:func:`get_path` and :py:func:`get_access_mode` will raise a :py:exc:`LEDSignProtocolError` exception.
 		"""
-		if (self._handle is not None):
-			LEDSignProtocol.close(self._handle)
+		self._check_if_closed()
+		LEDSignProtocol.close(self._handle)
 		self._handle=None
 		self._path=None
 		self._access_mode=LEDSign.ACCESS_MODE_NONE
 
 	def get_path(self) -> str|None:
 		"""
-		Returns the underlying OS path of the device, or :code:`None` if the device was closed.
+		Returns the underlying OS path of the device, or :python:`None` if the device was closed.
 		"""
 		return self._path
 
@@ -115,13 +117,13 @@ class LEDSign(object):
 
 	def get_access_mode_str(self) -> str:
 		"""
-		Same as :py:func:`get_access_mode`, but returns a stringified versions of the access mode. Possible values are: :code:`"none"`, :code:`"read-only"`, or :code:`"read-write"`.
+		Same as :py:func:`get_access_mode`, but returns a stringified versions of the access mode. Possible values are: :python:`"none"`, :python:`"read-only"`, or :python:`"read-write"`.
 		"""
 		return LEDSign.ACCESS_MODES[self._access_mode]
 
 	def get_psu_current(self) -> float:
 		"""
-		Returns the configured theoretical current limit of the power supply, in Amps. As only 5V power supplies are supported, no explicit voltage getter method is provided.
+		Returns the configured theoretical current limit of the power supply, in amps. As only 5V power supplies are supported, no explicit voltage getter method is provided.
 
 		.. danger::
 		   If the device draws more current than this limit, a device-internal overcurrent safety flag will be raised. Whenever this flag is active, no changes will be visible on the device.
@@ -133,42 +135,45 @@ class LEDSign(object):
 
 	def get_storage_size(self) -> int:
 		"""
-		:func:`get_storage_size`
+		Returns the storage capacity of the device allocated for program storage, in bytes.
 		"""
 		self._check_if_closed()
 		return self._storage_size
 
 	def get_hardware(self) -> LEDSignHardware:
 		"""
-		:func:`get_hardware`
+		Returns a read-only :py:class:`LEDSignHardware` object representing the current external hardware configuration of the device.
 		"""
 		self._check_if_closed()
 		return self._hardware
 
 	def get_firmware(self) -> str:
 		"""
-		:func:`get_firmware`
+		Returns a 40-character hex string uniquely identifying the current firmware versions of the device.
 		"""
 		self._check_if_closed()
 		return self._firmware
 
-	def get_raw_serial_number(self) -> int:
+	def get_serial_number(self) -> int:
 		"""
-		:func:`get_raw_serial_number`
+		Returns the unique 64-bit serial number of the device.
 		"""
 		self._check_if_closed()
 		return self._serial_number
 
-	def get_serial_number(self) -> str:
+	def get_serial_number_str(self) -> str:
 		"""
-		:func:`get_serial_number`
+		Same as :py:func:`get_serial_number`, but formats the serial number as a 16-hex-digit string.
 		"""
 		self._check_if_closed()
 		return f"{self._serial_number:016x}"
 
 	def get_driver_brightness(self) -> float:
 		"""
-		:func:`get_driver_brightness`
+		Returns the current device brightness setting, normalized between :python:`0.0` and :python:`1.0`.
+
+		.. note::
+		   If the overcurrent flag was tripped (see :py:func:`get_psu_current` for details), the returned brightness setting will not reflect the real-world conditions.
 		"""
 		self._check_if_closed()
 		return round(self._driver_brightness*20/7)/20
