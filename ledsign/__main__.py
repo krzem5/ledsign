@@ -59,7 +59,7 @@ def main():
 		if (options.print_config):
 			print(f"config:\n  access mode: {device.get_access_mode_str()}\n  power supply: 5V {device.get_psu_current()*1000:.0f}mA ({device.get_psu_current()*5}W)")
 		if (options.print_driver):
-			print(f"driver:\n  brightness: {device.get_driver_brightness()*100:.0f}%\n  paused: {str(device.is_driver_paused()).lower()}\n  temperature: {device.get_driver_temperature():.1f}*C\n  load: {device.get_driver_load():.1f}%\n  current: {device.get_driver_current_usage()*1000:.0f}mA\n  program time: {device.get_driver_program_time():.3f}s / {device.get_driver_program_duration():.3f}s")
+			print(f"driver:\n  brightness: {device.get_driver_brightness()*100:.0f}%\n  paused: {str(device.is_driver_paused()).lower()}\n  temperature: {device.get_driver_temperature():.1f}*C\n  load: {device.get_driver_load():.1f}%\n  current: {device.get_driver_current_usage()*1000:.0f}mA\n  program time: {device.get_driver_program_time():.3f}s / {device.get_program().get_duration():.3f}s")
 		if (options.save_program):
 			device.get_program().save(options.save_program)
 		if (options.upload_program):

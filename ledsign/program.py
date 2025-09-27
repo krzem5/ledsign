@@ -93,6 +93,12 @@ class LEDSignProgram(object):
 		parser.update(data)
 		parser.terminate()
 
+	def get_duration(self) -> float:
+		"""
+		:func:`get_duration`
+		"""
+		return self._duration/60
+
 	def compile(self,bypass_errors:bool=False) -> LEDSignCompiledProgram:
 		"""
 		:func:`compile`
@@ -148,12 +154,14 @@ class LEDSignProgram(object):
 		"""
 		:func:`get_keypoints`
 		"""
+		self.load()
 		return self._keypoint_list.iterate(mask)
 
 	def verify(self) -> bool:
 		"""
 		:func:`verify`
 		"""
+		self.load()
 		self._has_error=False
 		kp=self._keypoint_list.lookup_increasing(0,-1)
 		while (kp is not None):

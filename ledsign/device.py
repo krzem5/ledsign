@@ -1,5 +1,4 @@
 from collections.abc import Callable
-from ledsign.backend import LEDSignProtocolError
 from ledsign.hardware import LEDSignHardware
 from ledsign.program import LEDSignProgram
 from ledsign.program_io import LEDSignCompiledProgram
@@ -47,7 +46,7 @@ class LEDSign(object):
 		ACCESS_MODE_READ_WRITE: "read-write",
 	}
 
-	__slots__=["__weakref__","_path","_handle","_access_mode","_psu_current","_storage_size","_hardware","_firmware","_serial_number","_driver_brightness","_driver_program_paused","_driver_temperature","_driver_load","_driver_program_time","_driver_current_usage","_driver_program_offset_divisor","_driver_program_max_offset","_driver_info_sync_next_time","_driver_info_sync_interval","_program"]
+	__slots__=["__weakref__","_path","_handle","_access_mode","_psu_current","_storage_size","_hardware","_firmware","_serial_number","_driver_brightness","_driver_program_paused","_driver_temperature","_driver_load","_driver_program_time","_driver_current_usage","_driver_program_offset_divisor","_driver_info_sync_next_time","_driver_info_sync_interval","_program"]
 
 	def __init__(self,path,handle,config_packet) -> None:
 		self._path=path
@@ -61,7 +60,6 @@ class LEDSign(object):
 		self._driver_brightness=config_packet[5]&0x0f
 		self._driver_program_paused=not (config_packet[8]&1)
 		self._driver_program_offset_divisor=max((config_packet[3]&0xff)<<1,1)*60
-		self._driver_program_max_offset=max(config_packet[3]>>8,1)
 		self._driver_info_sync_next_time=0
 		self._driver_info_sync_interval=0.5
 		self._program=LEDSignProgram._create_unloaded_from_device(self,config_packet[3],config_packet[4])
@@ -76,7 +74,7 @@ class LEDSign(object):
 	def _check_if_closed(self) -> None:
 		if (self._handle is not None):
 			return
-		raise LEDSignProtocolError("Device handle closed")
+		raise LEDSignAccessError("Device handle was closed, no access allowed")
 
 	def _sync_driver_info(self) -> None:
 		self._check_if_closed()
@@ -91,7 +89,7 @@ class LEDSign(object):
 
 	def close(self) -> None:
 		"""
-		Closes the underlying device handle. After a call to this function, all methods except for :py:func:`get_path` and :py:func:`get_access_mode` will raise a :py:exc:`LEDSignProtocolError` exception.
+		Closes the underlying device handle. After a call to this function, all methods except for :py:func:`get_path` and :py:func:`get_access_mode` will raise a :py:exc:`LEDSignAccessError` exception.
 		"""
 		self._check_if_closed()
 		LEDSignProtocol.close(self._handle)
@@ -109,9 +107,9 @@ class LEDSign(object):
 		"""
 		Returns the access mode (permissions) granted by the device. Possible return values are:
 
-		* :py:attr:`ledsign.LEDSign.ACCESS_MODE_NONE`: No access; device handle was closed
-		* :py:attr:`ledsign.LEDSign.ACCESS_MODE_READ`: Read-only access; program uploads will be rejected
-		* :py:attr:`ledsign.LEDSign.ACCESS_MODE_READ_WRITE`: Full read-write access
+		* :py:attr:`ACCESS_MODE_NONE`: No access; device handle was closed
+		* :py:attr:`ACCESS_MODE_READ`: Read-only access; program uploads will be rejected
+		* :py:attr:`ACCESS_MODE_READ_WRITE`: Full read-write access
 		"""
 		return self._access_mode
 
@@ -126,9 +124,9 @@ class LEDSign(object):
 		Returns the configured theoretical current limit of the power supply, in amps. As only 5V power supplies are supported, no explicit voltage getter method is provided.
 
 		.. danger::
-		   If the device draws more current than this limit, a device-internal overcurrent safety flag will be raised. Whenever this flag is active, no changes will be visible on the device.
+		   If the device draws more current than this limit, a device-internal overcurrent safety flag will be raised. Whenever this flag is active, no changes made to the device will be visible.
 
-		   **For safety reasons, this flag can only be cleared from the UI menu.**
+		   **For safety reasons, this flag can only be cleared from the UI menu, or through device reboots.**
 		"""
 		self._check_if_closed()
 		return self._psu_current
@@ -173,69 +171,74 @@ class LEDSign(object):
 		Returns the current device brightness setting, normalized between :python:`0.0` and :python:`1.0`.
 
 		.. note::
-		   If the overcurrent flag was tripped (see :py:func:`get_psu_current` for details), the returned brightness setting will not reflect the real-world conditions.
+		   If the overcurrent flag was tripped (see :py:func:`get_psu_current` for details), the returned brightness setting may not reflect the real-world conditions.
 		"""
 		self._check_if_closed()
 		return round(self._driver_brightness*20/7)/20
 
 	def is_driver_paused(self) -> bool:
 		"""
-		:func:`is_driver_paused`
+		Returns :python:`True` if the LED driver is in a paused state (ie. the program playback is frozen), and :python:`False` otherwise.
+
+		.. note::
+		   For internal protocol reasons, this flag is **not** periodically synchronized with the device.
 		"""
 		self._check_if_closed()
 		return self._driver_program_paused
 
 	def get_driver_temperature(self) -> float:
 		"""
-		:func:`get_driver_temperature`
+		Returns the current temperature of the LED driver, in degrees Celsius.
+
+		The temperature is fetched periodically from the device, at an interval specified by :py:func:`get_driver_status_reload_time`.
 		"""
 		self._sync_driver_info()
 		return self._driver_temperature
 
 	def get_driver_load(self) -> float:
 		"""
-		:func:`get_driver_load`
+		Returns the current driver CPU load, normalized between :python:`0.0` and :python:`1.0`. The returned value represents the frame render duration, measured as a fraction of the overall frame time.
+
+		The driver load is fetched periodically from the device, at an interval specified by :py:func:`get_driver_status_reload_time`.
 		"""
 		self._sync_driver_info()
 		return self._driver_load
 
 	def get_driver_program_time(self) -> float:
 		"""
-		:func:`get_driver_program_time`
+		Returns the current program timestamp. The timestamp wraps around to zero at program duration, ie. :python:`timestamp %= self.get_program().get_duration()`.
+
+		The timestamp is fetched periodically from the device, at an interval specified by :py:func:`get_driver_status_reload_time`.
 		"""
 		self._sync_driver_info()
 		return self._driver_program_time
 
 	def get_driver_current_usage(self) -> float:
 		"""
-		:func:`get_driver_current_usage`
+		Returns the current being drawn by the device hardware from the power supply. Internally, this same value is used in the overcurrent protection circuit (see :py:func:`get_psu_current` for more details).
+
+		The current usage is fetched periodically from the device, at an interval specified by :py:func:`get_driver_status_reload_time`.
 		"""
 		self._sync_driver_info()
 		return self._driver_current_usage
 
-	def get_driver_program_duration(self) -> float:
+	def get_driver_status_reload_time(self) -> float:
 		"""
-		:func:`get_driver_program_duration`
-		"""
-		return self._driver_program_max_offset/self._driver_program_offset_divisor
-
-	def get_driver_status_reload_time(self):
-		"""
-		:func:`get_driver_status_reload_time`
+		Returns the current refresh interval (in seconds) used for fetching driver data. Can be modified using :py:func:`set_driver_status_reload_time`.
 		"""
 		return self._driver_info_sync_interval
 
-	def set_driver_status_reload_time(self,delta:float) -> float:
+	def set_driver_status_reload_time(self,interval:float) -> float:
 		"""
-		:func:`set_driver_status_reload_time`
+		Sets a new driver data refresh interval (in seconds), and returns the previous value. Negative intervals disable caching and fetch data whenever it is requested.
 		"""
 		out=self._driver_info_sync_interval
-		self._driver_info_sync_interval=delta
+		self._driver_info_sync_interval=(-1 if interval<=0 else interval)
 		return out
 
 	def get_program(self) -> LEDSignProgram:
 		"""
-		:func:`get_program`
+		Returns a read-only :py:class:`LEDSignProgram` object containing the current device program. For performance reasons, the program is lazily loaded only when its keypoints are accessed to prevent significant start-up delays.
 		"""
 		return self._program
 
@@ -252,7 +255,10 @@ class LEDSign(object):
 	@staticmethod
 	def open(path:str|None=None) -> "LEDSign":
 		"""
-		:func:`open`
+		Opens the specified device (or a default device if no path is provided), and returns its corresponding :py:class:`LEDSign` object. The device path must have been returned by a previous call to :py:func:`enumerate`.
+
+		.. warning::
+		   If the Python API was disabled in device settings, this method will raise a :py:exc:`LEDSignProtocolError` exception.
 		"""
 		if (path is None):
 			devices=LEDSignProtocol.enumerate()
