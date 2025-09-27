@@ -18,8 +18,24 @@ LEDSignAccessError=type("LEDSignAccessError",(Exception,),{})
 
 class LEDSign(object):
 	"""
-	The return value from :func:`LEDSign.open()`, representing a handle to LED sign device.
+	Returned by :py:func:`LEDSign.open`, represents a handle to an LED sign device.
+
+	.. autoattribute:: ACCESS_MODE_NONE
+	   :no-value:
+
+	   Access mode representing a device handle without read or write access. At the moment only used by closed device handles.
+
+	.. autoattribute:: ACCESS_MODE_READ
+	   :no-value:
+
+	   Access mode representing a device handle with only read permissions.
+
+	.. autoattribute:: ACCESS_MODE_READ_WRITE
+	   :no-value:
+
+	   Access mode representing a device handle with both read and write permissions.
 	"""
+
 	ACCESS_MODE_NONE:int=0x00
 	ACCESS_MODE_READ:int=0x01
 	ACCESS_MODE_READ_WRITE:int=0x02
@@ -55,7 +71,13 @@ class LEDSign(object):
 	def __repr__(self) -> str:
 		return f"<LEDSign id={self._serial_number:016x} fw={self._firmware}>"
 
+	def _check_if_closed(self) -> None:
+		if (self._handle is not None):
+			return
+		raise LEDSignProtocolError("Device handle closed")
+
 	def _sync_driver_info(self) -> None:
+		self._check_if_closed()
 		if (time.time()<self._driver_info_sync_next_time):
 			return
 		driver_status=LEDSignProtocol.process_packet(self._handle,LEDSignProtocol.PACKET_TYPE_LED_DRIVER_STATUS_RESPONSE,LEDSignProtocol.PACKET_TYPE_LED_DRIVER_STATUS_REQUEST)
@@ -67,70 +89,95 @@ class LEDSign(object):
 
 	def close(self) -> None:
 		"""
-		:func:`close`
+		Closes the underlying device handle. After a call to this function, all other methods will raise an :py:exc:`LEDSignProtocolError`.
 		"""
 		if (self._handle is not None):
 			LEDSignProtocol.close(self._handle)
 		self._handle=None
+		self._path=None
+		self._access_mode=LEDSign.ACCESS_MODE_NONE
 
-	def get_path(self) -> str:
+	def get_path(self) -> str|None:
 		"""
-		:func:`get_path`
+		Returns the underlying OS path of the device, or :code:`None` if the device was closed.
 		"""
 		return self._path
 
 	def get_access_mode(self) -> int:
 		"""
-		:func:`get_access_mode`
+		Returns the access mode (permissions) granted by the device. Possible return values are:
+
+		* :py:attr:`ledsign.LEDSign.ACCESS_MODE_NONE`: No access; device handle was closed
+		* :py:attr:`ledsign.LEDSign.ACCESS_MODE_READ`: Read-only access; program uploads will be rejected
+		* :py:attr:`ledsign.LEDSign.ACCESS_MODE_READ_WRITE`: Full read-write access
 		"""
 		return self._access_mode
 
+	def get_access_mode_str(self) -> str:
+		"""
+		Same as :py:func:`get_access_mode`, but returns a stringified versions of the access mode. Possible values are: :code:`"none"`, :code:`"read-only"`, or :code:`"read-write"`.
+		"""
+		return LEDSign.ACCESS_MODES[self._access_mode]
+
 	def get_psu_current(self) -> float:
 		"""
-		:func:`get_psu_current`
+		Returns the configured theoretical current limit of the power supply, in Amps. As only 5V power supplies are supported, no explicit voltage getter method is provided.
+
+		.. danger::
+		   If the device draws more current than this limit, a device-internal overcurrent safety flag will be raised. Whenever this flag is active, no changes will be visible on the device.
+
+		   **For safety reasons, this flag can only be cleared from the UI menu.**
 		"""
+		self._check_if_closed()
 		return self._psu_current
 
 	def get_storage_size(self) -> int:
 		"""
 		:func:`get_storage_size`
 		"""
+		self._check_if_closed()
 		return self._storage_size
 
 	def get_hardware(self) -> LEDSignHardware:
 		"""
 		:func:`get_hardware`
 		"""
+		self._check_if_closed()
 		return self._hardware
 
 	def get_firmware(self) -> str:
 		"""
 		:func:`get_firmware`
 		"""
+		self._check_if_closed()
 		return self._firmware
 
 	def get_raw_serial_number(self) -> int:
 		"""
 		:func:`get_raw_serial_number`
 		"""
+		self._check_if_closed()
 		return self._serial_number
 
 	def get_serial_number(self) -> str:
 		"""
 		:func:`get_serial_number`
 		"""
+		self._check_if_closed()
 		return f"{self._serial_number:016x}"
 
 	def get_driver_brightness(self) -> float:
 		"""
 		:func:`get_driver_brightness`
 		"""
+		self._check_if_closed()
 		return round(self._driver_brightness*20/7)/20
 
 	def is_driver_paused(self) -> bool:
 		"""
 		:func:`is_driver_paused`
 		"""
+		self._check_if_closed()
 		return self._driver_program_paused
 
 	def get_driver_temperature(self) -> float:
