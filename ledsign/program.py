@@ -23,7 +23,7 @@ LEDSignProgramError=type("LEDSignProgramError",(Exception,),{})
 class LEDSignProgram(object):
 	__slots__=["_hardware","_duration","_keypoint_list","_load_parameters","_builder_ready","_has_error"]
 
-	def __init__(self,device,file_path=None) -> None:
+	def __init__(self,device:"LEDSignDevice",file_path:str|None=None) -> None:
 		if (not isinstance(device,ledsign.device.LEDSign)):
 			raise TypeError(f"Expected 'LEDSign', got '{device.__class__.__name__}'")
 		if (file_path is not None and not isinstance(file_path,str)):
@@ -195,7 +195,7 @@ class LEDSignProgramBuilder(object):
 
 	__slots__=["program","time"]
 
-	def __init__(self,program):
+	def __init__(self,program) -> None:
 		if (not isinstance(program,LEDSignProgram) or not program._builder_ready):
 			raise RuntimeError("Direct initialization of LEDSignProgramBuilder is not supported")
 		self.program=program
@@ -216,26 +216,46 @@ class LEDSignProgramBuilder(object):
 			if (k.lower().startswith("command_")):
 				yield (k[8:],getattr(self,k))
 
-	def command_at(self,time):
+	def command_at(self,time:int|float) -> float:
+		"""
+		:func:`command_at`
+		"""
 		if (not isinstance(time,int) and not isinstance(time,float)):
 			raise TypeError(f"Expected 'int' or 'float', got '{time.__class__.__name__}'")
 		self.time=max(round(time*60),1)
+		return self.time
 
-	def command_after(self,time):
+	def command_after(self,time:int|float) -> float:
+		"""
+		:func:`command_after`
+		"""
 		if (not isinstance(time,int) and not isinstance(time,float)):
 			raise TypeError(f"Expected 'int' or 'float', got '{time.__class__.__name__}'")
 		self.time=max(self.time+round(time*60),1)
+		return self.time
 
-	def command_delta_time(self):
+	def command_delta_time(self) -> float:
+		"""
+		:func:`command_delta_time`
+		"""
 		return 1/60
 
-	def command_time(self):
+	def command_time(self) -> float:
+		"""
+		:func:`command_at`
+		"""
 		return self.time/60
 
-	def command_hardware(self):
+	def command_hardware(self) -> "LEDSignHardware":
+		"""
+		:func:`command_at`
+		"""
 		return self.program._hardware
 
-	def command_keypoint(self,rgb,mask,duration=1/60,time=None):
+	def command_keypoint(self,rgb:int|str,mask:int,duration:int|float|None=None,time:int|float|None=None) -> None:
+		"""
+		:func:`command_at`
+		"""
 		if (isinstance(rgb,int)):
 			rgb&=0xffffff
 		elif (isinstance(rgb,str) and len(rgb)==7 and rgb[0]=="#"):
@@ -244,7 +264,9 @@ class LEDSignProgramBuilder(object):
 			raise TypeError(f"Expected 'int' or 'hex-color', got '{rgb.__class__.__name__}'")
 		if (not isinstance(mask,int)):
 			raise TypeError(f"Expected 'int', got '{mask.__class__.__name__}'")
-		if (isinstance(duration,int) or isinstance(duration,float)):
+		if (duration is None):
+			duration=1/60
+		elif (isinstance(duration,int) or isinstance(duration,float)):
 			duration=max(round(duration*60),1)
 		else:
 			raise TypeError(f"Expected 'int' or 'float', got '{duration.__class__.__name__}'")
@@ -256,10 +278,16 @@ class LEDSignProgramBuilder(object):
 			raise TypeError(f"Expected 'int' or 'float', got '{time.__class__.__name__}'")
 		self.program._add_raw_keypoint(rgb,time,duration,mask,(sys._getframe(1) if hasattr(sys,"_getframe") else None))
 
-	def command_end(self):
+	def command_end(self) -> None:
+		"""
+		:func:`command_end`
+		"""
 		self.program._duration=self.time
 
-	def command_rgb(self,r,g,b):
+	def command_rgb(self,r:int|float,g:int|float,b:int|float) -> int:
+		"""
+		:func:`command_rgb`
+		"""
 		if (not isinstance(r,int) and not isinstance(r,float)):
 			raise TypeError(f"Expected 'int' or 'float', got '{r.__class__.__name__}'")
 		if (not isinstance(g,int) and not isinstance(g,float)):
@@ -271,7 +299,10 @@ class LEDSignProgramBuilder(object):
 		b=min(max(round(b),0),255)
 		return (r<<16)+(g<<8)+b
 
-	def command_hsv(self,h,s,v):
+	def command_hsv(self,h:int|float,s:int|float,v:int|float) -> int:
+		"""
+		:func:`command_hsv`
+		"""
 		if (not isinstance(h,int) and not isinstance(h,float)):
 			raise TypeError(f"Expected 'int' or 'float', got '{h.__class__.__name__}'")
 		if (not isinstance(s,int) and not isinstance(s,float)):
@@ -302,5 +333,8 @@ class LEDSignProgramBuilder(object):
 		return (v<<16)+(p<<8)+q
 
 	@staticmethod
-	def instance():
+	def instance() -> "LEDSignProgramBuilder":
+		"""
+		:func:`instance`
+		"""
 		return LEDSignProgramBuilder._current_instance
