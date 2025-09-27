@@ -1,7 +1,7 @@
 Program
 =======
 
-.. py:decorator:: ledsign.LEDSignProgram(device:LEDSignDevice)
+.. py:decorator:: ledsign.LEDSignProgram(device:LEDSign)
    :no-index:
 
    Generates a program from the decorated function. See :py:class:`LEDSignProgramBuilder` for usage details.

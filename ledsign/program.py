@@ -25,12 +25,14 @@ class LEDSignProgramError(Exception):
 
 class LEDSignProgram(object):
 	"""
-	:py:class:`LEDSignProgram`
+	Contains information about a complete LED sign program. If the :python:`file_path` argument is given, the program is loaded from the specified file path.
+
+	An instance of this class can be used as a function decorator to generate programs dynamically (see :py:class:`LEDSignProgramBuilder` or :py:func:`__call__` for details).
 	"""
 
 	__slots__=["_hardware","_duration","_keypoint_list","_load_parameters","_builder_ready","_has_error"]
 
-	def __init__(self,device:"LEDSignDevice",file_path:str|None=None) -> None:
+	def __init__(self,device:"LEDSign",file_path:str|None=None) -> None:
 		if (not isinstance(device,ledsign.device.LEDSign)):
 			raise TypeError(f"Expected 'LEDSign', got '{device.__class__.__name__}'")
 		if (file_path is not None and not isinstance(file_path,str)):
@@ -111,7 +113,7 @@ class LEDSignProgram(object):
 
 	def compile(self,bypass_errors:bool=False) -> LEDSignCompiledProgram:
 		"""
-		:func:`compile`
+		Compiles the program and returns a :py:class:`LEDSignCompiledProgram` object, and optionally bypasses error verification. Raises :py:exc:`LEDSignProgramError` if the program contains unresolved errors.
 		"""
 		self.load()
 		if (self._has_error and not bypass_errors):
@@ -120,7 +122,7 @@ class LEDSignProgram(object):
 
 	def save(self,file_path:str,bypass_errors:bool=False) -> None:
 		"""
-		:func:`save`
+		Writes the program to a file pointed to by the given file path. Optionally bypasses error verification, or raises :py:exc:`LEDSignProgramError` if the program contains unresolved errors.
 		"""
 		self.load()
 		if (self._has_error and not bypass_errors):
@@ -131,7 +133,7 @@ class LEDSignProgram(object):
 		"""
 		Explicitly loads an unloaded device program. Does nothing if the program was already downloaded, or if the program was not sourced from a :py:class:`LEDSign` device.
 
-		Raises :py:exc:`LEDSignProtocolError` or :py:exc:`LEDSignProgramError` if the device was closed or modified.
+		Raises :py:exc:`LEDSignProtocolError` or :py:exc:`LEDSignProgramError` if the device was closed or modified before this method was called.
 		"""
 		if (self._load_parameters is None):
 			return
@@ -164,14 +166,14 @@ class LEDSignProgram(object):
 
 	def get_keypoints(self,mask:int=-1) -> Iterator[LEDSignKeypoint]:
 		"""
-		:func:`get_keypoints`
+		Iterates over all keypoints containing any pixels selected by the given mask. If no mask is given, all keypoints are iterated over.
 		"""
 		self.load()
 		return self._keypoint_list.iterate(mask)
 
 	def verify(self) -> bool:
 		"""
-		:func:`verify`
+		Verifies the program, and reports any encountered errors. Returns :python:`True` if no errors have been found, and :python:`False` otherwise.
 		"""
 		self.load()
 		self._has_error=False
@@ -191,7 +193,7 @@ class LEDSignProgram(object):
 		return not self._has_error
 
 	@staticmethod
-	def _create_unloaded_from_device(device:"LEDSign",ctrl:int,crc:int):
+	def _create_unloaded_from_device(device:"LEDSign",ctrl:int,crc:int) -> "LEDSignProgram":
 		out=LEDSignProgram(device)
 		out._duration=(ctrl>>9)//max(ctrl&0xff,1)
 		if (ctrl>>8):
