@@ -47,7 +47,7 @@ class LEDSignProgram(object):
 	def __repr__(self) -> str:
 		return f"<LEDSignProgram{('[unloaded]' if self._load_parameters is not None else '')} hardware={self._hardware.get_string()} duration={self._duration/60:.3f}s>"
 
-	def __call__(self,func:Callable[[],None],skip_verify:bool=False) -> "LEDSignProgram":
+	def __call__(self,func:Callable[[],None],args:tuple=(),kwargs:dict={},skip_verify:bool=False) -> "LEDSignProgram":
 		"""
 		Explicitly generates a program from the given function, and optionally bypasses error verification. For details about use cases for this function, see :py:class:`LEDSignProgramBuilder`.
 		"""
@@ -62,7 +62,7 @@ class LEDSignProgram(object):
 				old_namespace[k]=namespace[k]
 			namespace[k]=v
 		try:
-			func()
+			func(*args,**kwargs)
 			if (skip_verify):
 				self._has_error=True
 			else:
