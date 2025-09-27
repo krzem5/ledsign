@@ -24,6 +24,8 @@ LEDSign documentation
 .. autoclass:: ledsign.LEDSignKeypoint()
    :members:
 
+.. autoclass:: ledsign.LEDSignCompiledProgram()
+
 .. autoexception:: ledsign.LEDSignAccessError
 .. autoexception:: ledsign.LEDSignDeviceInUseError
 .. autoexception:: ledsign.LEDSignDeviceNotFoundError
