@@ -11,8 +11,17 @@ __all__=["LEDSignDeviceNotFoundError","LEDSignAccessError","LEDSign"]
 
 
 
-LEDSignDeviceNotFoundError=type("LEDSignDeviceNotFoundError",(Exception,),{})
-LEDSignAccessError=type("LEDSignAccessError",(Exception,),{})
+class LEDSignDeviceNotFoundError(Exception):
+	"""
+	Raised by :py:func:`LEDSign.open` when no device was found.
+	"""
+
+
+
+class LEDSignAccessError(Exception):
+	"""
+	Raised when the device access mode was violated.
+	"""
 
 
 
@@ -244,7 +253,9 @@ class LEDSign(object):
 
 	def upload_program(self,program:LEDSignCompiledProgram,callback:Callable[[float,bool],None]|None=None) -> None:
 		"""
-		:func:`upload_program`
+		Uploads a compiled :py:class:`LEDSignCompiledProgram` to the device. If the device was opened in read-only mode, a :py:exc:`LEDSignAccessError` exception will be raised.
+
+		The optional callback argument will be periodically called throughout the upload process with arguments :python:`(progress, is_first_stage)`.
 		"""
 		if (not isinstance(program,LEDSignCompiledProgram)):
 			raise TypeError(f"Expected 'LEDSignCompiledProgram', got '{program.__class__.__name__}'")
@@ -257,8 +268,10 @@ class LEDSign(object):
 		"""
 		Opens the specified device (or a default device if no path is provided), and returns its corresponding :py:class:`LEDSign` object. The device path must have been returned by a previous call to :py:func:`enumerate`.
 
-		.. warning::
-		   If the Python API was disabled in device settings, this method will raise a :py:exc:`LEDSignProtocolError` exception.
+		If the device is already in use by a different program, a :py:exc:`LEDSignDeviceInUseError` will be raised. Additionally, if the device protocol version is incompatible, or if the Python API was disabled in device settings, a :py:exc:`LEDSignUnsupportedProtocolError` or :py:exc:`LEDSignProtocolError` exception will be returned respectively.
+
+		.. note::
+		   Due to the internal USB-level configuration, this library can be used alongside the UI without triggering a :py:exc:`LEDSignDeviceInUseError` exception. This feature allows the UI to be kept open while writing new programs to ease the debugging process.
 		"""
 		if (path is None):
 			devices=LEDSignProtocol.enumerate()
@@ -280,6 +293,6 @@ class LEDSign(object):
 	@staticmethod
 	def enumerate() -> list[str]:
 		"""
-		:func:`enumerate`
+		Returns a list of available device paths detected by the OS.
 		"""
 		return LEDSignProtocol.enumerate()

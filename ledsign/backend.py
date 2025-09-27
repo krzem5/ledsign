@@ -8,8 +8,17 @@ __all__=["LEDSignProtocolError","LEDSignDeviceInUseError","LEDSignProtocolBacken
 
 
 
-LEDSignProtocolError=type("LEDSignProtocolError",(Exception,),{})
-LEDSignDeviceInUseError=type("LEDSignDeviceInUseError",(Exception,),{})
+class LEDSignProtocolError(Exception):
+	"""
+	Raised during any encountered protocol error.
+	"""
+
+
+
+class LEDSignDeviceInUseError(Exception):
+	"""
+	Raised when a device path supplied to :py:func:`LEDSign.open` was already in use by a different program.
+	"""
 
 
 

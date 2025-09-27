@@ -8,7 +8,10 @@ __all__=["LEDSignUnsupportedProtocolError","LEDSignProtocol"]
 
 
 
-LEDSignUnsupportedProtocolError=type("LEDSignUnsupportedProtocolError",(Exception,),{})
+class LEDSignUnsupportedProtocolError(Exception):
+	"""
+	Raised when the device responds with an unimplemented protocol version.
+	"""
 
 
 
