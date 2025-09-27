@@ -16,11 +16,18 @@ __all__=["LEDSignProgramError","LEDSignProgram","LEDSignProgramBuilder"]
 
 
 
-LEDSignProgramError=type("LEDSignProgramError",(Exception,),{})
+class LEDSignProgramError(Exception):
+	"""
+	Raised whenever issues in a program's configuration are detected.
+	"""
 
 
 
 class LEDSignProgram(object):
+	"""
+	:py:class:`LEDSignProgram`
+	"""
+
 	__slots__=["_hardware","_duration","_keypoint_list","_load_parameters","_builder_ready","_has_error"]
 
 	def __init__(self,device:"LEDSignDevice",file_path:str|None=None) -> None:
@@ -42,7 +49,7 @@ class LEDSignProgram(object):
 
 	def __call__(self,func:Callable[[],None],skip_verify:bool=False) -> "LEDSignProgram":
 		"""
-		:func:`__call__`
+		Explicitly generates a program from the given function, and optionally bypasses error verification. For details about use cases for this function, see :py:class:`LEDSignProgramBuilder`.
 		"""
 		self._builder_ready=True
 		builder=LEDSignProgramBuilder(self)
@@ -95,7 +102,7 @@ class LEDSignProgram(object):
 
 	def get_duration(self) -> float:
 		"""
-		:func:`get_duration`
+		Returns the current duration of the program.
 		"""
 		return self._duration/60
 
@@ -119,7 +126,9 @@ class LEDSignProgram(object):
 
 	def load(self) -> None:
 		"""
-		:func:`load`
+		Explicitly loads an unloaded device program. Does nothing if the program was already downloaded, or if the program was not sourced from a :py:class:`LEDSign` device.
+
+		Raises :py:exc:`LEDSignProtocolError` or :py:exc:`LEDSignProgramError` if the device was closed or modified.
 		"""
 		if (self._load_parameters is None):
 			return
@@ -343,6 +352,6 @@ class LEDSignProgramBuilder(object):
 	@staticmethod
 	def instance() -> "LEDSignProgramBuilder":
 		"""
-		:func:`instance`
+		Returns the current active instance of :py:class:`LEDSignProgramBuilder`, or :python:`None` if none are active.
 		"""
 		return LEDSignProgramBuilder._current_instance

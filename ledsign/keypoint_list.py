@@ -3,6 +3,13 @@ __all__=["LEDSignKeypoint","LEDSignKeypointList"]
 
 
 class LEDSignKeypoint(object):
+	"""
+	Represents a single keypoint in a program.
+
+	.. note::
+	   For performance reasons, not all generated keypoints are always coalesced together, as this expensive step is only performed during external program loads (ie. programs loaded using :py:func:`LEDSignProgram` or through :py:func:`LEDSign.get_program`).
+	"""
+
 	__slots__=["rgb","end","duration","mask","_frame","_key","_subtree_mask","_parent","_color","_nodes"]
 
 	def __init__(self,rgb,end,duration,mask,frame) -> None:
@@ -19,6 +26,42 @@ class LEDSignKeypoint(object):
 
 	def __repr__(self) -> str:
 		return f"<LEDSignKeypoint color=#{self.rgb:06x} duration={self.duration/60:.3f}s end={self.end/60:.3f}s mask={self.mask:x}>"
+
+	def get_rgb(self) -> int:
+		"""
+		Returns the raw RGB color of the current keypoint (red in MSB, blue in LSB).
+		"""
+		return self.rgb
+
+	def get_rgb_html(self) -> str:
+		"""
+		Returns the HTML color code of the current keypoint.
+		"""
+		return f"#{self.rgb:06x}"
+
+	def get_start(self) -> float:
+		"""
+		Returns the start time of the keypoint.
+		"""
+		return (self.end-self.duration)/60
+
+	def get_end(self) -> float:
+		"""
+		Returns the end time of the keypoint.
+		"""
+		return self.end/60
+
+	def get_duration(self) -> float:
+		"""
+		Returns the duration of the keypoint.
+		"""
+		return self.duration/60
+
+	def get_mask(self) -> int:
+		"""
+		Returns the current keypoint's pixel mask.
+		"""
+		return get_mask
 
 
 

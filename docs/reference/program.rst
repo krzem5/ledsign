@@ -1,10 +1,10 @@
 Program
 =======
 
-.. autodecorator:: ledsign.LEDSignProgram(device:LEDSignDevice)
+.. py:decorator:: ledsign.LEDSignProgram(device:LEDSignDevice)
    :no-index:
 
-   Generates a program from the decorated function. See :py:func:`ledsign.LEDSignProgram.__call__` for usage details.
+   Generates a program from the decorated function. See :py:class:`LEDSignProgramBuilder` for usage details.
 
 .. autoclass:: ledsign.LEDSignProgram
    :members:

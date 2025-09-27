@@ -129,6 +129,10 @@ class LEDSignCompilationPixel(object):
 
 
 class LEDSignCompiledProgram(object):
+	"""
+	Represents a compiled :py:class:`LEDSignProgram` object.
+	"""
+
 	__slots__=["_data","_led_depth","_max_offset","_offset_divisor","_ctrl","_crc"]
 
 	def __init__(self,program,is_compressed):
