@@ -95,7 +95,7 @@ class LEDSignSelector(object):
 	@staticmethod
 	def get_bounding_box(mask:int=-1,hardware:LEDSignHardware|None=None) -> tuple[float,float,float,float]:
 		"""
-		Returns the bounding box :python:`(sx, sy, ex, ey)` of all pixels selected by the given mask. If no mask is given, the bounding box of all pixels is computed.
+		Returns the bounding box :python:`(sx, sy, ex, ey)` of all pixels selected by :python:`mask`. If no mask is given, the bounding box of all pixels is computed.
 		"""
 		if (hardware is None):
 			hardware=LEDSignProgramBuilder.instance().program._hardware
@@ -125,7 +125,7 @@ class LEDSignSelector(object):
 	@staticmethod
 	def get_center(mask:int=-1,weighted:bool=False,hardware:LEDSignHardware|None=None) -> tuple[float,float]:
 		"""
-		Returns the center :python:`(cx, cy)` of all pixels selected by the given mask. If no mask is given, the bounding box of all pixels is computed.
+		Returns the center :python:`(cx, cy)` of all pixels selected by :python:`mask`. If no mask is given, the bounding box of all pixels is computed.
 
 		If the :python:`weighted` flag is set, the center is weighted across all pixels locations. Otherwise, the center of the bounding box returned by :py:func:`get_bounding_box` is calculated.
 		"""
@@ -153,9 +153,9 @@ class LEDSignSelector(object):
 	@staticmethod
 	def get_pixels(mask:int=-1,letter:int|None=None,hardware:LEDSignHardware|None=None) -> Iterator[tuple[float,float,int]]:
 		"""
-		Returns all pixel :python:`(x, y, mask)` tuples selected by the given mask. If no mask is given, the bounding box of all pixels is computed.
+		Returns all pixel :python:`(x, y, mask)` tuples selected by :python:`mask`. If no mask is given, the bounding box of all pixels is computed.
 
-		If the letter index is given, only pixels from the given letter are processed.
+		If the :python:`letter` index is given, only pixels from the given letter are processed.
 		"""
 		if (hardware is None):
 			hardware=LEDSignProgramBuilder.instance().program._hardware
@@ -226,7 +226,7 @@ class LEDSignSelector(object):
 	@staticmethod
 	def get_circle_mask(cx:int|float,cy:int|float,r:int|float,hardware:LEDSignHardware|None=None) -> int:
 		"""
-		Returns a mask selecting all pixels within the given circle.
+		Returns a mask selecting all pixels within the circle centered at :python:`(cx, cy)` with radius :python:`r`.
 		"""
 		if (hardware is None):
 			hardware=LEDSignProgramBuilder.instance().program._hardware

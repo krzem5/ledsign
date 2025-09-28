@@ -26,7 +26,7 @@ class LEDSignProgramError(Exception):
 
 class LEDSignProgram(object):
 	"""
-	Contains information about a complete LED sign program. If the :python:`file_path` argument is given, the program is loaded from the specified file path.
+	Contains information about a complete LED sign program compatible with :python:`device`. If the :python:`file_path` argument is given, the program is loaded from the specified file path.
 
 	An instance of this class can be used as a function decorator to generate programs dynamically (see :py:class:`LEDSignProgramBuilder` or :py:func:`__call__` for details).
 	"""
@@ -50,9 +50,9 @@ class LEDSignProgram(object):
 	def __repr__(self) -> str:
 		return f"<LEDSignProgram{('[unloaded]' if self._load_parameters is not None else '')} hardware={self._hardware.get_string()} duration={self._duration/60:.3f}s>"
 
-	def __call__(self,func:Callable[[],None],args:tuple=(),kwargs:dict={},inject_commands:bool=True,skip_verify:bool=False) -> "LEDSignProgram":
+	def __call__(self,func:Callable[[],None],args:tuple=(),kwargs:dict={},inject_commands:bool=True,bypass_errors:bool=False) -> "LEDSignProgram":
 		"""
-		Explicitly generates a program from the given function, and optionally bypasses error verification. Explicit uses of this method are required when 'stitching' a program from multiple functions, or when it is necessary to pass arguments to the supplied function. An example use case might be the following:
+		Explicitly generates a program from the given function :python:`func(*args, **kwargs)`, and optionally bypasses error verification if the :python:`bypass_errors` flag is set. Explicit uses of this method are required when 'stitching' a program from multiple functions, or when it is necessary to pass arguments to the supplied function. An example use case might be the following:
 
 		.. code-block:: python
 
@@ -82,7 +82,7 @@ class LEDSignProgram(object):
 				namespace[k]=v
 		try:
 			func(*args,**kwargs)
-			if (skip_verify):
+			if (bypass_errors):
 				self._has_error=True
 			else:
 				self.verify()
@@ -131,7 +131,7 @@ class LEDSignProgram(object):
 
 	def compile(self,bypass_errors:bool=False) -> LEDSignCompiledProgram:
 		"""
-		Compiles the program and returns a :py:class:`LEDSignCompiledProgram` object, and optionally bypasses error verification. Raises :py:exc:`LEDSignProgramError` if the program contains unresolved errors.
+		Compiles the program and returns a :py:class:`LEDSignCompiledProgram` object, and optionally bypasses error verification if the :python:`bypass_errors` flag is set. Raises :py:exc:`LEDSignProgramError` if the program contains unresolved errors.
 		"""
 		self.load()
 		if (self._has_error and not bypass_errors):
@@ -140,7 +140,7 @@ class LEDSignProgram(object):
 
 	def save(self,file_path:str,bypass_errors:bool=False) -> None:
 		"""
-		Writes the program to a file pointed to by the given file path. Optionally bypasses error verification, or raises :py:exc:`LEDSignProgramError` if the program contains unresolved errors.
+		Writes the program to a file pointed to by the :python:`file_path`. Optionally bypasses error verification (if the :python:`bypass_errors` flag is set), or raises :py:exc:`LEDSignProgramError` if the program contains unresolved errors.
 		"""
 		self.load()
 		if (self._has_error and not bypass_errors):
@@ -184,7 +184,7 @@ class LEDSignProgram(object):
 
 	def get_keypoints(self,mask:int=-1) -> Iterator[LEDSignKeypoint]:
 		"""
-		Iterates over all keypoints containing any pixels selected by the given mask. If no mask is given, all keypoints are iterated over.
+		Iterates over all keypoints containing any pixels selected by :python:`mask`. If no mask is given, all keypoints are iterated over.
 		"""
 		self.load()
 		return self._keypoint_list.iterate(mask)
@@ -248,9 +248,7 @@ class LEDSignProgramBuilder(object):
 	| :func:`time`       | :func:`tm`  | :py:func:`command_time`       |
 	+--------------------+-------------+-------------------------------+
 
-	.. note::
-
-	   Due to limitations of the internal implementation, these shortcuts can only be accessed by code located in the same file as the executed program generation function. In other files (or in functions where local closures re-define the command aliases), all commands can be accessed through the current program builder instance, ex. :python:`LEDSignProgramBuilder.instance().command_end()`.
+	The following example illustrates the three different ways of accessing the :python:`keypoint` command:
 
 	.. code-block:: python
 
@@ -262,10 +260,13 @@ class LEDSignProgramBuilder(object):
 		    kp("#00ff00") # <-- shortcut for the 'keypoint' command
 		    after(1)
 		    builder=LEDSignProgramBuilder.instance()
-		    builder.command_keypoint("#0000ff") # <-- original 'keypoint' command
+		    builder.command_keypoint("#0000ff") # <-- underlying 'keypoint' command
 		    after(1)
 		    end()
 
+	.. note::
+
+		Due to limitations of the internal implementation, these shortcuts can only be accessed by code located within the same file (ie. sharing the same global scope) as the executed program generation function. In other contexts (such as in functions where local closures re-define the command aliases), all commands can be accessed through the current program builder instance, ex. :python:`LEDSignProgramBuilder.instance().command_end()`.
 	"""
 
 	COMMANDS={
@@ -308,31 +309,31 @@ class LEDSignProgramBuilder(object):
 
 	def command_at(self,time:int|float) -> float:
 		"""
-		:func:`command_at`
+		Sets the current timestamp to :python:`time` (in seconds), and returns this new value. Negative values are clamped to :python:`0.0`.
 		"""
 		if (not isinstance(time,int) and not isinstance(time,float)):
 			raise TypeError(f"Expected 'int' or 'float', got '{time.__class__.__name__}'")
 		self.time=max(round(time*60),1)
 		return self.time
 
-	def command_after(self,time:int|float) -> float:
+	def command_after(self,delta_time:int|float) -> float:
 		"""
-		:func:`command_after`
+		Advances the current timestamp by :python:`delta_time` (in seconds), and returns its new value. Negative values move back the time, clamping to :python:`0.0` if the resulting timestamp becomes negative.
 		"""
-		if (not isinstance(time,int) and not isinstance(time,float)):
-			raise TypeError(f"Expected 'int' or 'float', got '{time.__class__.__name__}'")
-		self.time=max(self.time+round(time*60),1)
+		if (not isinstance(delta_time,int) and not isinstance(delta_time,float)):
+			raise TypeError(f"Expected 'int' or 'float', got '{delta_time.__class__.__name__}'")
+		self.time=max(self.time+round(delta_time*60),1)
 		return self.time
 
 	def command_delta_time(self) -> float:
 		"""
-		:func:`command_delta_time`
+		Returns the interval between consecutive program frames, in seconds.
 		"""
 		return 1/60
 
 	def command_time(self) -> float:
 		"""
-		:func:`command_at`
+		Returns the current timestamp, in seconds.
 		"""
 		return self.time/60
 
@@ -370,7 +371,7 @@ class LEDSignProgramBuilder(object):
 
 	def command_end(self) -> None:
 		"""
-		:func:`command_end`
+		Places the program end marker at the current timestamp. All animations after this timestamp will not be compiled. Can be used multiple times to adjust the length of the program.
 		"""
 		self.program._duration=self.time
 

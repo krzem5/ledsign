@@ -239,7 +239,7 @@ class LEDSign(object):
 
 	def set_driver_status_reload_time(self,interval:float) -> float:
 		"""
-		Sets a new driver data refresh interval (in seconds), and returns the previous value. Negative intervals disable caching and fetch data whenever it is requested.
+		Sets :python:`interval` as the new driver data refresh interval (in seconds), and returns the previous value. Negative values for :python:`interval` disable caching and fetch data whenever it is requested.
 		"""
 		out=self._driver_info_sync_interval
 		self._driver_info_sync_interval=(-1 if interval<=0 else interval)
@@ -253,9 +253,9 @@ class LEDSign(object):
 
 	def upload_program(self,program:LEDSignCompiledProgram,callback:Callable[[float,bool],None]|None=None) -> None:
 		"""
-		Uploads a compiled :py:class:`LEDSignCompiledProgram` to the device. If the device was opened in read-only mode, a :py:exc:`LEDSignAccessError` exception will be raised.
+		Uploads the given :python:`program` to the device. If the device was opened in read-only mode, a :py:exc:`LEDSignAccessError` exception will be raised.
 
-		The optional callback argument will be periodically called throughout the upload process with arguments :python:`(progress, is_first_stage)`.
+		The optional :python:`callback` argument is periodically called throughout the upload process with arguments :python:`(progress, is_first_stage)`.
 		"""
 		if (not isinstance(program,LEDSignCompiledProgram)):
 			raise TypeError(f"Expected 'LEDSignCompiledProgram', got '{program.__class__.__name__}'")
@@ -266,7 +266,7 @@ class LEDSign(object):
 	@staticmethod
 	def open(path:str|None=None) -> "LEDSign":
 		"""
-		Opens the specified device (or a default device if no path is provided), and returns its corresponding :py:class:`LEDSign` object. The device path must have been returned by a previous call to :py:func:`enumerate`.
+		Opens the device pointed to by :python:`path` (or the default device if no path is provided), and returns its corresponding :py:class:`LEDSign` object. The device path must have been returned by a previous call to :py:func:`enumerate`.
 
 		If the device is already in use by a different program, a :py:exc:`LEDSignDeviceInUseError` will be raised. Additionally, if the device protocol version is incompatible, or if the Python API was disabled in device settings, a :py:exc:`LEDSignUnsupportedProtocolError` or :py:exc:`LEDSignProtocolError` exception will be returned respectively.
 

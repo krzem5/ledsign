@@ -8,7 +8,7 @@ copyright="2025, Krzesimir Hyżyk"
 extensions=["sphinx.ext.autodoc"]
 html_theme="sphinx_rtd_theme"
 project="LEDSign"
-rst_prolog = """
+rst_prolog="""
 .. role:: python(code)
    :language: python
    :class: highlight

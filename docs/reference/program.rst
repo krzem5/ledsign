@@ -4,7 +4,7 @@ Program
 .. py:decorator:: ledsign.LEDSignProgram(device:LEDSign)
    :no-index:
 
-   Generates a program from the decorated function. See :py:class:`LEDSignProgramBuilder` for usage details.
+   Generates a program from the decorated function, compatible with :python:`device`. See :py:class:`LEDSignProgramBuilder` for usage details.
 
 .. autoclass:: ledsign.LEDSignProgram
    :members:
