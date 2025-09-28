@@ -339,13 +339,29 @@ class LEDSignProgramBuilder(object):
 
 	def command_hardware(self) -> "LEDSignHardware":
 		"""
-		:func:`command_at`
+		Returns the :py:class:`LEDSignHardware` object associated with the current program. Can be used as an explicit argument for functions from the :py:class:`LEDSignSelector` class (although these functions will call this method internally if no explicit hardware object is supplied to them).
 		"""
 		return self.program._hardware
 
 	def command_keypoint(self,rgb:int|str,mask:int=-1,duration:int|float|None=None,time:int|float|None=None) -> None:
 		"""
-		:func:`command_at`
+		Creates an :python:`rgb`-colored keypoint. Both integer (:code:`0xrrggbb`) and HTML (:python:`"#rrggbb"`) colors are supported. For other color formats, convert the argument using :py:func:`command_rgb` or :py:func:`command_hsv`.
+
+		If the :python:`mask` argument is given, only pixels selected by the provided mask will have this keypoint applied to them.
+
+		The duration of the animation is specified by the :python:`duration` argument (in seconds). If left undefined or negative, the animation will be instant.
+
+		If the :python:`time` argument is omitted, the keypoint will terminate at the currently selected timestamp. Otherwise, the keypoint will end at timestamp :python:`time`, given in seconds.
+
+		.. warning::
+
+			During program verification, each keypoint is checked to prevent invalid configurations (usually resulting from bugs in the generator code). Two types of invalid keypoint configurations are: (1) negative start time, and (2) ambiguous ordering.
+
+			The first error is reported with a keypoint's start time (ie. its end time minus its duration) predates the start of the program (timestamp :python:`0.0`). The compiler is not be able generate the full extent of the animation, and thus the end result is undefined.
+
+			The second error occurs when at any point more than one keypoint attempts to apply an animation to the same pixel. Due to undefined compilation ordering, the produced results may not be consistent across compilations.
+
+			However, for increased performance, these error-checking functions can be postponed or disabled altogether by setting the :python:`bypass_errors` flag in relevant :py:class:`LEDSignProgram` functions.
 		"""
 		if (isinstance(rgb,int)):
 			rgb&=0xffffff
