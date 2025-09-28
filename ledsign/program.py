@@ -50,20 +50,36 @@ class LEDSignProgram(object):
 	def __repr__(self) -> str:
 		return f"<LEDSignProgram{('[unloaded]' if self._load_parameters is not None else '')} hardware={self._hardware.get_string()} duration={self._duration/60:.3f}s>"
 
-	def __call__(self,func:Callable[[],None],args:tuple=(),kwargs:dict={},skip_verify:bool=False) -> "LEDSignProgram":
+	def __call__(self,func:Callable[[],None],args:tuple=(),kwargs:dict={},inject_commands:bool=True,skip_verify:bool=False) -> "LEDSignProgram":
 		"""
-		Explicitly generates a program from the given function, and optionally bypasses error verification. For details about use cases for this function, see :py:class:`LEDSignProgramBuilder`.
+		Explicitly generates a program from the given function, and optionally bypasses error verification. Explicit uses of this method are required when 'stitching' a program from multiple functions, or when it is necessary to pass arguments to the supplied function. An example use case might be the following:
+
+		.. code-block:: python
+
+			def mark_program_end(duration):
+			    at(duration)
+			    end()
+			    at(0)
+
+			program = ledsign.LEDSignProgram(device)
+			program(mark_program_end, args = (4.0,))
+			@program # alternatively: program(program_body_fn)
+			def program_body_fn():
+			    kp("#ff0000")
+
+		For advanced use cases, command alias injection can be disabled through the :python:`inject_commands` argument (see :py:class:`LEDSignProgramBuilder` for details about command shorthands).
 		"""
 		self._builder_ready=True
 		builder=LEDSignProgramBuilder(self)
 		self._builder_ready=False
 		builder._change_lock(True)
-		namespace=func.__globals__
-		old_namespace={}
-		for k,v in builder._get_function_list():
-			if (k in namespace):
-				old_namespace[k]=namespace[k]
-			namespace[k]=v
+		if (inject_commands):
+			namespace=func.__globals__
+			old_namespace={}
+			for k,v in builder._get_function_list():
+				if (k in namespace):
+					old_namespace[k]=namespace[k]
+				namespace[k]=v
 		try:
 			func(*args,**kwargs)
 			if (skip_verify):
@@ -74,11 +90,12 @@ class LEDSignProgram(object):
 			self._has_error=True
 			raise e
 		finally:
-			for k,_ in builder._get_function_list():
-				if (k in old_namespace):
-					namespace[k]=old_namespace[k]
-				else:
-					del namespace[k]
+			if (inject_commands):
+				for k,_ in builder._get_function_list():
+					if (k in old_namespace):
+						namespace[k]=old_namespace[k]
+					else:
+						del namespace[k]
 			builder._change_lock(False)
 		return self
 
@@ -207,6 +224,8 @@ class LEDSignProgramBuilder(object):
 	"""
 	The :py:class:`LEDSignProgramBuilder` class maintains context needed for dynamic program generation. It cannot be created directly; instead it is globally available via :py:func:`LEDSignProgramBuilder.instance` within the stack frames of a decorated :py:class:`LEDSignProgram` function (or function called passed to :py:func:`LEDSignProgram.__call__`).
 
+	For convenience reasons, all program builder commands are made available in the program function's global scope, with shorthand aliases for longer ones. The following commands and shortcuts injected into the global scope:
+
 	+--------------------+-------------+-------------------------------+
 	| Command            | Shortcut    | Builder method                |
 	+====================+=============+===============================+
@@ -229,15 +248,22 @@ class LEDSignProgramBuilder(object):
 	| :func:`time`       | :func:`tm`  | :py:func:`command_time`       |
 	+--------------------+-------------+-------------------------------+
 
+	.. note::
+
+	   Due to limitations of the internal implementation, these shortcuts can only be accessed by code located in the same file as the executed program generation function. In other files (or in functions where local closures re-define the command aliases), all commands can be accessed through the current program builder instance, ex. :python:`LEDSignProgramBuilder.instance().command_end()`.
+
 	.. code-block:: python
 
 		@ledsign.LEDSignProgram(device)
 		def program():
 		    at(0)
-		    kp("#ff0000") # <-- shortcut for the 'keypoint' command
-		    after(5)
-		    keypoint("#00ff00",ledsign.LEDSignSelector.get_letter_mask(0))
-		    af(5) # <-- shortcut for the 'after' command
+		    keypoint("#ff0000") # <-- alias of the 'keypoint' command
+		    after(1)
+		    kp("#00ff00") # <-- shortcut for the 'keypoint' command
+		    after(1)
+		    builder=LEDSignProgramBuilder.instance()
+		    builder.command_keypoint("#0000ff") # <-- original 'keypoint' command
+		    after(1)
 		    end()
 
 	"""
