@@ -205,7 +205,7 @@ class LEDSignProgram(object):
 
 class LEDSignProgramBuilder(object):
 	"""
-	:py:class:`LEDSignProgramBuilder`
+	The :py:class:`LEDSignProgramBuilder` class maintains context needed for dynamic program generation. It cannot be created directly; instead it is globally available via :py:func:`LEDSignProgramBuilder.instance` within the stack frames of a decorated :py:class:`LEDSignProgram` function (or function called passed to :py:func:`LEDSignProgram.__call__`).
 
 	+--------------------+-------------+-------------------------------+
 	| Command            | Shortcut    | Builder method                |
@@ -228,6 +228,18 @@ class LEDSignProgramBuilder(object):
 	+--------------------+-------------+-------------------------------+
 	| :func:`time`       | :func:`tm`  | :py:func:`command_time`       |
 	+--------------------+-------------+-------------------------------+
+
+	.. code-block:: python
+
+		@ledsign.LEDSignProgram(device)
+		def program():
+		    at(0)
+		    kp("#ff0000") # <-- shortcut for the 'keypoint' command
+		    after(5)
+		    keypoint("#00ff00",ledsign.LEDSignSelector.get_letter_mask(0))
+		    af(5) # <-- shortcut for the 'after' command
+		    end()
+
 	"""
 
 	COMMANDS={
