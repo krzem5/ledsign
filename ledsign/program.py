@@ -345,7 +345,7 @@ class LEDSignProgramBuilder(object):
 
 	def command_keypoint(self,rgb:int|str,mask:int=-1,duration:int|float|None=None,time:int|float|None=None) -> None:
 		"""
-		Creates an :python:`rgb`-colored keypoint. Both integer (:code:`0xrrggbb`) and HTML (:python:`"#rrggbb"`) colors are supported. For other color formats, convert the argument using :py:func:`command_rgb` or :py:func:`command_hsv`.
+		Creates an :python:`rgb`-colored keypoint. Both integer (:code:`0xrrggbb`) and HTML (:python:`"#rrggbb"`) colors are supported. For other color formats, convert their respective arguments using :py:func:`command_rgb` or :py:func:`command_hsv`.
 
 		If the :python:`mask` argument is given, only pixels selected by the provided mask will have this keypoint applied to them.
 
@@ -393,7 +393,7 @@ class LEDSignProgramBuilder(object):
 
 	def command_rgb(self,r:int|float,g:int|float,b:int|float) -> int:
 		"""
-		:func:`command_rgb`
+		Converts the given :python:`(r, g, b)` tuple (each element is clamped between :python:`0.0` and :python:`255.0`) into a packed 24-bit integer color. Can be used to pack individual :python:`int` or :python:`float` color channels for use with the :py:func:`command_keypoint` function.
 		"""
 		if (not isinstance(r,int) and not isinstance(r,float)):
 			raise TypeError(f"Expected 'int' or 'float', got '{r.__class__.__name__}'")
@@ -408,7 +408,7 @@ class LEDSignProgramBuilder(object):
 
 	def command_hsv(self,h:int|float,s:int|float,v:int|float) -> int:
 		"""
-		:func:`command_hsv`
+		Converts the given :python:`(h, s, v)` tuple (each element is clamped between :python:`0.0` and :python:`1.0`) into a packed 24-bit integer color. Can be used to generate HSV colors for use with the :py:func:`command_keypoint` function.
 		"""
 		if (not isinstance(h,int) and not isinstance(h,float)):
 			raise TypeError(f"Expected 'int' or 'float', got '{h.__class__.__name__}'")
