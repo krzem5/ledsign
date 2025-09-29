@@ -180,7 +180,7 @@ class LEDSignSelector(object):
 			hardware=LEDSignProgramBuilder.instance().program._hardware
 		if (not isinstance(index,int)):
 			raise TypeError(f"Expected 'int', got '{index.__class__.__name__}'")
-		if (mask<0):
+		if (index<0):
 			raise IndexError("Letter index out of range")
 		if (not isinstance(hardware,LEDSignHardware)):
 			raise TypeError(f"Expected 'LEDSignHardware', got '{hardware.__class__.__name__}'")
