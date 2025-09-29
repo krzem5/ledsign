@@ -79,30 +79,33 @@ class LEDSignSelector(object):
 	"""
 	This static class contains several common pattern generators, to be used within a :py:class:`LEDSignProgramBuilder` context.
 
-	Every method accepts an optional :python:`hardware` argument, which when omitted will default to the one used by the current :py:class:`LEDSignProgramBuilder` instance.
+	Every method accepts an optional :python:`hardware` argument, which when omitted will default to the one used by the current :py:class:`LEDSignProgramBuilder` instance (if a program builder is currently active).
 	"""
+	@staticmethod
+	def _check_hardware(hardware:LEDSignHardware|None) -> LEDSignHardware:
+		if (hardware is None):
+			builder=LEDSignProgramBuilder.instance()
+			if (builder is not None):
+				hardware=builder.program._hardware
+		if (not isinstance(hardware,LEDSignHardware)):
+			raise TypeError(f"Expected 'LEDSignHardware', got '{hardware.__class__.__name__}'")
+		return hardware
+
 	@staticmethod
 	def get_led_depth(hardware:LEDSignHardware|None=None) -> int:
 		"""
 		Returns the longest LED chain present in the current hardware configuration.
 		"""
-		if (hardware is None):
-			hardware=LEDSignProgramBuilder.instance().program._hardware
-		if (not isinstance(hardware,LEDSignHardware)):
-			raise TypeError(f"Expected 'LEDSignHardware', got '{hardware.__class__.__name__}'")
-		return hardware._led_depth
+		return LEDSignSelector._check_hardware(hardware)._led_depth
 
 	@staticmethod
 	def get_bounding_box(mask:int=-1,hardware:LEDSignHardware|None=None) -> tuple[float,float,float,float]:
 		"""
 		Returns the bounding box :python:`(sx, sy, ex, ey)` of all pixels selected by :python:`mask`. If no mask is given, the bounding box of all pixels is computed.
 		"""
-		if (hardware is None):
-			hardware=LEDSignProgramBuilder.instance().program._hardware
+		hardware=LEDSignSelector._check_hardware(hardware)
 		if (not isinstance(mask,int)):
 			raise TypeError(f"Expected 'int', got '{mask.__class__.__name__}'")
-		if (not isinstance(hardware,LEDSignHardware)):
-			raise TypeError(f"Expected 'LEDSignHardware', got '{hardware.__class__.__name__}'")
 		out=[0.0,0.0,0.0,0.0]
 		is_first=True
 		for i,xy in enumerate(hardware._pixels):
@@ -129,12 +132,9 @@ class LEDSignSelector(object):
 
 		If the :python:`weighted` flag is set, the center is weighted across all pixels locations. Otherwise, the center of the bounding box returned by :py:func:`get_bounding_box` is calculated.
 		"""
-		if (hardware is None):
-			hardware=LEDSignProgramBuilder.instance().program._hardware
+		hardware=LEDSignSelector._check_hardware(hardware)
 		if (not isinstance(mask,int)):
 			raise TypeError(f"Expected 'int', got '{mask.__class__.__name__}'")
-		if (not isinstance(hardware,LEDSignHardware)):
-			raise TypeError(f"Expected 'LEDSignHardware', got '{hardware.__class__.__name__}'")
 		if (not weighted):
 			bbox=LEDSignSelector.get_bounding_box(mask,hardware)
 			return ((bbox[0]+bbox[2])/2,(bbox[1]+bbox[3])/2)
@@ -157,12 +157,9 @@ class LEDSignSelector(object):
 
 		If the :python:`letter` index is given, only pixels from the given letter are processed.
 		"""
-		if (hardware is None):
-			hardware=LEDSignProgramBuilder.instance().program._hardware
+		hardware=LEDSignSelector._check_hardware(hardware)
 		if (not isinstance(mask,int)):
 			raise TypeError(f"Expected 'int', got '{mask.__class__.__name__}'")
-		if (not isinstance(hardware,LEDSignHardware)):
-			raise TypeError(f"Expected 'LEDSignHardware', got '{hardware.__class__.__name__}'")
 		if (letter is not None):
 			mask&=LEDSignSelector.get_letter_mask(letter,hardware=hardware)
 		m=1
@@ -176,14 +173,11 @@ class LEDSignSelector(object):
 		"""
 		Returns the pixel mask corresponding to the letter selected by :python:`index`. Raises an :py:exc:`IndexError` if the index is out of bounds.
 		"""
-		if (hardware is None):
-			hardware=LEDSignProgramBuilder.instance().program._hardware
+		hardware=LEDSignSelector._check_hardware(hardware)
 		if (not isinstance(index,int)):
 			raise TypeError(f"Expected 'int', got '{index.__class__.__name__}'")
 		if (index<0):
 			raise IndexError("Letter index out of range")
-		if (not isinstance(hardware,LEDSignHardware)):
-			raise TypeError(f"Expected 'LEDSignHardware', got '{hardware.__class__.__name__}'")
 		for i in range(0,8):
 			if (not hardware._raw_config[i]):
 				continue
@@ -197,10 +191,7 @@ class LEDSignSelector(object):
 		"""
 		Returns all letter :python:`(index, character, mask)` tuples of the current hardware configuration.
 		"""
-		if (hardware is None):
-			hardware=LEDSignProgramBuilder.instance().program._hardware
-		if (not isinstance(hardware,LEDSignHardware)):
-			raise TypeError(f"Expected 'LEDSignHardware', got '{hardware.__class__.__name__}'")
+		hardware=LEDSignSelector._check_hardware(hardware)
 		j=0
 		for i in range(0,8):
 			if (not hardware._raw_config[i]):
@@ -213,10 +204,7 @@ class LEDSignSelector(object):
 		"""
 		Returns the number of letters in the current hardware configuration.
 		"""
-		if (hardware is None):
-			hardware=LEDSignProgramBuilder.instance().program._hardware
-		if (not isinstance(hardware,LEDSignHardware)):
-			raise TypeError(f"Expected 'LEDSignHardware', got '{hardware.__class__.__name__}'")
+		hardware=LEDSignSelector._check_hardware(hardware)
 		out=0
 		for i in range(0,8):
 			if (hardware._raw_config[i]):
@@ -224,12 +212,11 @@ class LEDSignSelector(object):
 		return out
 
 	@staticmethod
-	def get_circle_mask(cx:int|float,cy:int|float,r:int|float,hardware:LEDSignHardware|None=None) -> int:
+	def get_circle_mask(cx:int|float,cy:int|float,r:int|float,mask:int=-1,hardware:LEDSignHardware|None=None) -> int:
 		"""
-		Returns a mask selecting all pixels within the circle centered at :python:`(cx, cy)` with radius :python:`r`.
+		Returns a mask selecting all pixels within the circle centered at :python:`(cx, cy)` with radius :python:`r`, selected by the provided :python:`mask`. If no mask is given, the all pixels are processed.
 		"""
-		if (hardware is None):
-			hardware=LEDSignProgramBuilder.instance().program._hardware
+		hardware=LEDSignSelector._check_hardware(hardware)
 		if (not isinstance(cx,int) and not isinstance(cx,float)):
 			raise TypeError(f"Expected 'int' or 'float', got '{cx.__class__.__name__}'")
 		if (not isinstance(cy,int) and not isinstance(cy,float)):
@@ -238,11 +225,10 @@ class LEDSignSelector(object):
 			raise TypeError(f"Expected 'int' or 'float', got '{r.__class__.__name__}'")
 		if (r<0):
 			raise ValueError(f"Radius must not be negative, got '{r}'")
-		if (not isinstance(hardware,LEDSignHardware)):
-			raise TypeError(f"Expected 'LEDSignHardware', got '{hardware.__class__.__name__}'")
 		r*=r
 		out=0
 		for i,xy in enumerate(hardware._pixels):
-			if (xy is not None and (xy[0]-cx)**2+(xy[1]-cy)**2<=r):
+			if (xy is not None and (mask&1) and (xy[0]-cx)**2+(xy[1]-cy)**2<=r):
 				out|=1<<i
+			mask>>=1
 		return out

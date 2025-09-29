@@ -418,9 +418,9 @@ class LEDSignProgramBuilder(object):
 			raise TypeError(f"Expected 'int' or 'float', got '{v.__class__.__name__}'")
 		h=(h%360)/60
 		s=min(max(s,0),1)
-		v*=255
+		v=min(max(round(v*255),0),255)
 		if (s==0):
-			return min(max(round(v),0),255)*0x010101
+			return v*0x010101
 		i=int(h)
 		s*=v
 		f=s*(h-i)
