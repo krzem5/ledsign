@@ -225,6 +225,8 @@ class LEDSignSelector(object):
 			raise TypeError(f"Expected 'int' or 'float', got '{r.__class__.__name__}'")
 		if (r<0):
 			raise ValueError(f"Radius must not be negative, got '{r}'")
+		if (not isinstance(mask,int)):
+			raise TypeError(f"Expected 'int', got '{mask.__class__.__name__}'")
 		r*=r
 		out=0
 		for i,xy in enumerate(hardware._pixels):

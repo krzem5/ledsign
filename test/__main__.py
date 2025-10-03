@@ -22,11 +22,16 @@ class TestManager(object):
 
 	def execute(self):
 		TestManager._instance=self
-		for fn in self._functions:
-			fn()
-		TestManager._instance=None
-		with open("build/test_result.txt","w") as wf:
-			wf.write(f"{self._success_count},{self._fail_count}\n")
+		try:
+			for fn in self._functions:
+				fn()
+		except Exception as e:
+			self.fail("Exception encountered")
+			raise e
+		finally:
+			TestManager._instance=None
+			with open("build/test_result.txt","w") as wf:
+				wf.write(f"{self._success_count},{self._fail_count}\n")
 
 	def equal(self,a,b):
 		if (a.__class__==b.__class__ and (a==b or (isinstance(a,float) and isinstance(b,float) and abs(a-b)<1e-6))):
@@ -77,6 +82,8 @@ class TestBackendDeviceContext(object):
 	HANDSHAKE_OPEN=0
 	HANDSHAKE_CONNECTED=1
 
+	HARDWARE_SCALE=768
+
 	def __init__(self,path,supported_protocol_version,inject_protocol_error,config):
 		self.path=path
 		self.supported_protocol_version=supported_protocol_version
@@ -98,6 +105,7 @@ class TestBackendDeviceContext(object):
 				"program_offset": 0x00000000,
 				"current_usage": 0x00000000
 			},
+			"hardware_data": {},
 			**config
 		}
 		self.handshake_state=TestBackendDeviceContext.HANDSHAKE_OPEN
@@ -122,7 +130,7 @@ class TestBackendDeviceContext(object):
 			54,
 			self.supported_protocol_version,
 			self.config["storage"],
-			self.config["hardware"],
+			(self.config["hardware"]() if callable(self.config["hardware"]) else self.config["hardware"]),
 			self.config["program_ctrl"],
 			self.config["program_crc"],
 			self.config["brightness"]&0x0f,
@@ -146,14 +154,17 @@ class TestBackendDeviceContext(object):
 		)
 
 	def _process_hardware_data_request_packet(self,packet):
-		if (len(packet)!=3 or self.handshake_state!=TestBackendDeviceContext.HANDSHAKE_CONNECTED):
+		if (len(packet)!=3 or self.handshake_state!=TestBackendDeviceContext.HANDSHAKE_CONNECTED or chr(packet[2]) not in self.config["hardware_data"]):
 			return self._error_packet()
+		entry=self.config["hardware_data"][chr(packet[2])]
 		self.extended_read_data=bytearray()
+		for x,y in entry["data"]:
+			self.extended_read_data+=struct.pack("<HH",x*TestBackendDeviceContext.HARDWARE_SCALE,y*TestBackendDeviceContext.HARDWARE_SCALE)
 		return struct.pack("<BBHH16x",
 			TestBackendDeviceContext.PACKET_TYPE_HARDWARE_DATA_RESPONSE,
 			22,
-			0,
-			0
+			len(self.extended_read_data),
+			entry["width"]*TestBackendDeviceContext.HARDWARE_SCALE
 		)
 
 	def process_packet(self,packet):
@@ -474,17 +485,160 @@ def test_device_driver_reload_time():
 @test
 def test_hardware():
 	test.exception(lambda:LEDSignHardware(None,None),TypeError)
+	TestBackend(device_config={"hardware":lambda:device_hardware,"hardware_data":{chr(i+65):{"data":[],"width":0} for i in range(0,5)}})
 	for device_hardware,str_hardware,user_hardware in [
 		(b"\x00\x00\x00\x00\x00\x00\x00\x00","[00 00 00 00 00 00 00 00]",""),
 		(b"\x00A\x00\x00\x00\x00\x00\x00","[00 41 00 00 00 00 00 00]","A"),
 		(b"A\x00B\x00\x00CDE","[41 00 42 00 00 43 44 45]","ABCDE"),
 	]:
-		TestBackend(device_config={"hardware":device_hardware})
 		device=LEDSign.open()
 		test.equal(device.get_hardware().get_raw(),device_hardware)
 		test.equal(device.get_hardware().get_string(),str_hardware)
 		test.equal(device.get_hardware().get_user_string(),user_hardware)
 		device.close()
+
+
+
+@test
+def test_selector_bounding_box():
+	TestBackend(device_config={"hardware":b"A\x00\x00\x00\x00\x00A\x00","hardware_data":{"A":{"data":[(0,0),(1,0),(1,1)],"width":2}}})
+	device=LEDSign.open()
+	test.exception(LEDSignSelector.get_bounding_box,TypeError)
+	@LEDSignProgram(device)
+	def program():
+		test.exception(lambda:LEDSignSelector.get_bounding_box(mask="wrong_type"),TypeError)
+		test.exception(lambda:LEDSignSelector.get_bounding_box(hardware="wrong_type"),TypeError)
+		test.equal(LEDSignSelector.get_bounding_box(),(0.0,0.0,3.0,1.0))
+		test.equal(LEDSignSelector.get_bounding_box(mask=3),(0.0,0.0,1.0,0.0))
+		test.equal(LEDSignSelector.get_bounding_box(mask=LEDSignSelector.get_letter_mask(0)),(0.0,0.0,1.0,1.0))
+		test.equal(LEDSignSelector.get_bounding_box(mask=LEDSignSelector.get_letter_mask(1)),(2.0,0.0,3.0,1.0))
+	device.close()
+
+
+
+@test
+def test_selector_center():
+	TestBackend(device_config={"hardware":b"A\x00\x00\x00\x00\x00A\x00","hardware_data":{"A":{"data":[(0,0),(1,0),(1,1)],"width":2}}})
+	device=LEDSign.open()
+	test.exception(LEDSignSelector.get_center,TypeError)
+	@LEDSignProgram(device)
+	def program():
+		test.exception(lambda:LEDSignSelector.get_center(mask="wrong_type"),TypeError)
+		test.exception(lambda:LEDSignSelector.get_center(hardware="wrong_type"),TypeError)
+		test.equal(LEDSignSelector.get_center(),(1.5,0.5))
+		test.equal(LEDSignSelector.get_center(weighted=True),(5/3,1/3))
+		test.equal(LEDSignSelector.get_center(mask=1),(0.0,0.0))
+		test.equal(LEDSignSelector.get_center(mask=1,weighted=True),(0.0,0.0))
+		test.equal(LEDSignSelector.get_center(mask=LEDSignSelector.get_letter_mask(1)),(2.5,0.5))
+		test.equal(LEDSignSelector.get_center(mask=LEDSignSelector.get_letter_mask(1),weighted=True),(8/3,1/3))
+	device.close()
+
+
+
+@test
+def test_selector_circle_mask():
+	TestBackend(device_config={"hardware":b"A\x00\x00\x00\x00\x00A\x00","hardware_data":{"A":{"data":[(0,0),(1,0),(1,1),(5,5)],"width":6}}})
+	device=LEDSign.open()
+	test.exception(LEDSignSelector.get_circle_mask,TypeError)
+	@LEDSignProgram(device)
+	def program():
+		test.exception(lambda:LEDSignSelector.get_circle_mask("wrong_type",0.0,1.0),TypeError)
+		test.exception(lambda:LEDSignSelector.get_circle_mask(0.0,"wrong_type",1.0),TypeError)
+		test.exception(lambda:LEDSignSelector.get_circle_mask(0.0,0.0,"wrong_type"),TypeError)
+		test.exception(lambda:LEDSignSelector.get_circle_mask(0.0,0.0,"wrong_type"),TypeError)
+		test.exception(lambda:LEDSignSelector.get_circle_mask(0.0,0.0,-1.0),ValueError)
+		test.exception(lambda:LEDSignSelector.get_circle_mask(0.0,0.0,1.0,mask="wrong_type"),TypeError)
+		test.exception(lambda:LEDSignSelector.get_circle_mask(hardware="wrong_type"),TypeError)
+	device.close()
+	print("test_selector_circle_mask")
+
+
+
+@test
+def test_selector_led_depth():
+	device_hardware=bytearray(8)
+	TestBackend(device_config={"hardware":lambda:device_hardware,"hardware_data":{"A":{"data":[(0,0),(1,0),(1,1)],"width":2},"B":{"data":[(0,0),(1,0),(1,1),(2,2),(3,3)],"width":4}}})
+	device=LEDSign.open()
+	test.exception(LEDSignSelector.get_led_depth,TypeError)
+	@LEDSignProgram(device)
+	def program():
+		test.exception(lambda:LEDSignSelector.get_led_depth(hardware="wrong_type"),TypeError)
+		test.equal(LEDSignSelector.get_led_depth(),0)
+	device.close()
+	device_hardware[0]=65
+	LEDSignProgram(LEDSign.open())(lambda:test.equal(LEDSignSelector.get_led_depth(),3))
+	device_hardware[5]=65
+	LEDSignProgram(LEDSign.open())(lambda:test.equal(LEDSignSelector.get_led_depth(),3))
+	device_hardware[5]=66
+	LEDSignProgram(LEDSign.open())(lambda:test.equal(LEDSignSelector.get_led_depth(),5))
+
+
+
+@test
+def test_selector_letter_count():
+	device_hardware=bytearray(8)
+	TestBackend(device_config={"hardware":lambda:device_hardware,"hardware_data":{"A":{"data":[(0,0),(1,0),(1,1)],"width":2},"B":{"data":[(0,0),(1,0),(1,1),(2,2),(3,3)],"width":4}}})
+	device=LEDSign.open()
+	test.exception(LEDSignSelector.get_letter_count,TypeError)
+	@LEDSignProgram(device)
+	def program():
+		test.exception(lambda:LEDSignSelector.get_letter_count(hardware="wrong_type"),TypeError)
+		test.equal(LEDSignSelector.get_letter_count(),0)
+	device.close()
+	device_hardware[0]=65
+	LEDSignProgram(LEDSign.open())(lambda:test.equal(LEDSignSelector.get_letter_count(),1))
+	device_hardware[5]=65
+	LEDSignProgram(LEDSign.open())(lambda:test.equal(LEDSignSelector.get_letter_count(),2))
+	device_hardware[5]=66
+	LEDSignProgram(LEDSign.open())(lambda:test.equal(LEDSignSelector.get_letter_count(),2))
+
+
+
+@test
+def test_selector_letter_mask():
+	TestBackend(device_config={"hardware":b"\x00A\x00\x00BB\x00\x00","hardware_data":{"A":{"data":[(0,0),(1,0),(1,1)],"width":2},"B":{"data":[(0,0),(1,0),(1,1),(2,2),(3,3)],"width":4}}})
+	device=LEDSign.open()
+	test.exception(LEDSignSelector.get_letter_mask,TypeError)
+	@LEDSignProgram(device)
+	def program():
+		test.exception(lambda:LEDSignSelector.get_letter_mask("wrong_type"),TypeError)
+		test.exception(lambda:LEDSignSelector.get_letter_mask(-1),IndexError)
+		test.exception(lambda:LEDSignSelector.get_letter_mask(3),IndexError)
+		test.exception(lambda:LEDSignSelector.get_letter_mask(hardware="wrong_type"),TypeError)
+		test.equal(LEDSignSelector.get_letter_mask(0),7<<5)
+		test.equal(LEDSignSelector.get_letter_mask(1),31<<20)
+		test.equal(LEDSignSelector.get_letter_mask(2),31<<25)
+	device.close()
+
+
+
+@test
+def test_selector_letter_masks():
+	TestBackend(device_config={"hardware":b"\x00A\x00\x00BB\x00\x00","hardware_data":{"A":{"data":[(0,0),(1,0),(1,1)],"width":2},"B":{"data":[(0,0),(1,0),(1,1),(2,2),(3,3)],"width":4}}})
+	device=LEDSign.open()
+	test.exception(lambda:tuple(LEDSignSelector.get_letter_masks),TypeError)
+	@LEDSignProgram(device)
+	def program():
+		test.exception(lambda:tuple(LEDSignSelector.get_letter_masks(hardware="wrong_type")),TypeError)
+		test.equal(tuple(LEDSignSelector.get_letter_masks()),((0,"A",7<<5),(1,"B",31<<20),(2,"B",31<<25)))
+	device.close()
+
+
+
+@test
+def test_selector_pixels():
+	TestBackend(device_config={"hardware":b"A\x00\x00\x00\x00\x00B\x00","hardware_data":{"A":{"data":[(0,0),(1,0),(1,1)],"width":2},"B":{"data":[(0,0),(1,0),(1,1),(2,2),(3,3)],"width":4}}})
+	device=LEDSign.open()
+	test.exception(lambda:tuple(LEDSignSelector.get_pixels),TypeError)
+	@LEDSignProgram(device)
+	def program():
+		test.exception(lambda:tuple(LEDSignSelector.get_pixels(mask="wrong_type")),TypeError)
+		test.exception(lambda:tuple(LEDSignSelector.get_pixels(letter="wrong_type")),TypeError)
+		test.exception(lambda:tuple(LEDSignSelector.get_pixels(letter=-1)),IndexError)
+		test.exception(lambda:tuple(LEDSignSelector.get_pixels(letter=2)),IndexError)
+		test.exception(lambda:tuple(LEDSignSelector.get_pixels(hardware="wrong_type")),TypeError)
+	device.close()
+	print("test_selector_pixels")
 
 
 
