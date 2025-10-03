@@ -343,7 +343,7 @@ class LEDSignProgramBuilder(object):
 		"""
 		return self.program._hardware
 
-	def command_keypoint(self,rgb:int|str,mask:int=-1,duration:int|float|None=None,time:int|float|None=None) -> None:
+	def command_keypoint(self,rgb:int|str,mask:int=-1,duration:int|float|None=None,time:int|float|None=None) -> LEDSignKeypoint:
 		"""
 		Creates an :python:`rgb`-colored keypoint. Both integer (:code:`0xrrggbb`) and HTML (:python:`"#rrggbb"`) colors are supported. For other color formats, convert their respective arguments using :py:func:`command_rgb` or :py:func:`command_hsv`.
 
@@ -372,7 +372,7 @@ class LEDSignProgramBuilder(object):
 		if (not isinstance(mask,int)):
 			raise TypeError(f"Expected 'int', got '{mask.__class__.__name__}'")
 		if (duration is None):
-			duration=1/60
+			duration=1
 		elif (isinstance(duration,int) or isinstance(duration,float)):
 			duration=max(round(duration*60),1)
 		else:

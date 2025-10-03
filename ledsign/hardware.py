@@ -92,6 +92,13 @@ class LEDSignSelector(object):
 		return hardware
 
 	@staticmethod
+	def get_mask(hardware:LEDSignHardware|None=None) -> int:
+		"""
+		Returns a mask selecting all pixels.
+		"""
+		return LEDSignSelector._check_hardware(hardware)._mask
+
+	@staticmethod
 	def get_led_depth(hardware:LEDSignHardware|None=None) -> int:
 		"""
 		Returns the longest LED chain present in the current hardware configuration.

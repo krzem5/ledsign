@@ -65,7 +65,7 @@ class LEDSignKeypoint(object):
 		"""
 		Returns the current keypoint's pixel mask.
 		"""
-		return get_mask
+		return self.mask
 
 
 

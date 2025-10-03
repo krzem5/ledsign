@@ -561,6 +561,26 @@ def test_selector_circle_mask():
 
 
 @test
+def test_selector_mask():
+	device_hardware=bytearray(8)
+	TestBackend(device_config={"hardware":lambda:device_hardware,"hardware_data":{"A":{"data":[(0,0),(1,0),(1,1)],"width":2},"B":{"data":[(0,0),(1,0),(1,1),(2,2),(3,3)],"width":4}}})
+	device=LEDSign.open()
+	test.exception(LEDSignSelector.get_mask,TypeError)
+	@LEDSignProgram(device)
+	def program():
+		test.exception(lambda:LEDSignSelector.get_mask(hardware="wrong_type"),TypeError)
+		test.equal(LEDSignSelector.get_mask(),0)
+	device.close()
+	device_hardware[0]=65
+	LEDSignProgram(LEDSign.open())(lambda:test.equal(LEDSignSelector.get_mask(),7))
+	device_hardware[5]=65
+	LEDSignProgram(LEDSign.open())(lambda:test.equal(LEDSignSelector.get_mask(),7|(7<<15)))
+	device_hardware[5]=66
+	LEDSignProgram(LEDSign.open())(lambda:test.equal(LEDSignSelector.get_mask(),7|(31<<25)))
+
+
+
+@test
 def test_selector_led_depth():
 	device_hardware=bytearray(8)
 	TestBackend(device_config={"hardware":lambda:device_hardware,"hardware_data":{"A":{"data":[(0,0),(1,0),(1,1)],"width":2},"B":{"data":[(0,0),(1,0),(1,1),(2,2),(3,3)],"width":4}}})
@@ -648,6 +668,113 @@ def test_selector_pixels():
 		test.equal(tuple(LEDSignSelector.get_pixels(mask=5|LEDSignSelector.get_letter_mask(1),letter=0)),((0.0,0.0,1),(1.0,1.0,4)))
 		test.equal(tuple(LEDSignSelector.get_pixels(mask=3|(16<<30))),((0.0,0.0,1),(1.0,0.0,2),(5.0,3.0,16<<30)))
 	device.close()
+
+
+
+@test
+def test_program_load():
+	TestBackend(device_config={"hardware":b"A\x00\x00\x00\x00\x00B\x00","hardware_data":{"A":{"data":[(0,0),(1,0),(1,1)],"width":2},"B":{"data":[(0,0),(1,0),(1,1),(2,2),(3,3)],"width":4}}})
+	device=LEDSign.open()
+	@LEDSignProgram(device)
+	def program():
+		kp("#ff0000")
+		af(1)
+		kp("#00ff00",5)
+		af(1)
+		kp("#0000ff",duration=0.5)
+		af(1)
+		end()
+	program.save("build/temp.led")
+	program=LEDSignProgram(device,"build/temp.led")
+	test.equal(program.get_duration(),181/60)
+	keypoints=tuple(program.get_keypoints())
+	test.equal(len(keypoints),3)
+	test.equal(keypoints[0].get_duration(),1/60)
+	test.equal(keypoints[0].get_end(),1/60)
+	test.equal(keypoints[0].get_mask(),LEDSignSelector.get_mask(hardware=device.get_hardware()))
+	test.equal(keypoints[0].get_rgb(),0xff0000)
+	test.equal(keypoints[1].get_duration(),1/60)
+	test.equal(keypoints[1].get_end(),61/60)
+	test.equal(keypoints[1].get_mask(),5)
+	test.equal(keypoints[1].get_rgb(),0x00ff00)
+	test.equal(keypoints[2].get_duration(),30/60)
+	test.equal(keypoints[2].get_end(),121/60)
+	test.equal(keypoints[2].get_mask(),LEDSignSelector.get_mask(hardware=device.get_hardware()))
+	test.equal(keypoints[2].get_rgb(),0x0000ff)
+	device.close()
+
+
+
+@test
+def test_program_generate():
+	print("test_program_generate")
+
+
+
+@test
+def test_program_compile():
+	print("test_program_compile")
+
+
+
+@test
+def test_program_duration():
+	print("test_program_duration")
+
+
+
+@test
+def test_program_keypoints():
+	TestBackend(device_config={"hardware":b"A\x00\x00\x00\x00\x00B\x00","hardware_data":{"A":{"data":[(0,0),(1,0),(1,1)],"width":2},"B":{"data":[(0,0),(1,0),(1,1),(2,2),(3,3)],"width":4}}})
+	device=LEDSign.open()
+	@LEDSignProgram(device)
+	def program():
+		kp("#ff0000")
+		af(1)
+		kp("#2eaa34",5)
+		af(1)
+		kp("#0000ff",duration=0.5)
+		af(1)
+		end()
+	keypoints=tuple(program.get_keypoints())
+	test.equal(len(keypoints),3)
+	test.equal(keypoints[0].get_duration(),1/60)
+	test.equal(keypoints[0].get_end(),1/60)
+	test.equal(keypoints[0].get_mask(),LEDSignSelector.get_mask(hardware=device.get_hardware()))
+	test.equal(keypoints[0].get_rgb(),0xff0000)
+	test.equal(keypoints[0].get_rgb_html(),"#ff0000")
+	test.equal(keypoints[0].get_start(),0/60)
+	test.equal(keypoints[1].get_duration(),1/60)
+	test.equal(keypoints[1].get_end(),61/60)
+	test.equal(keypoints[1].get_mask(),5)
+	test.equal(keypoints[1].get_rgb(),0x2eaa34)
+	test.equal(keypoints[1].get_rgb_html(),"#2eaa34")
+	test.equal(keypoints[1].get_start(),60/60)
+	test.equal(keypoints[2].get_duration(),30/60)
+	test.equal(keypoints[2].get_end(),121/60)
+	test.equal(keypoints[2].get_mask(),LEDSignSelector.get_mask(hardware=device.get_hardware()))
+	test.equal(keypoints[2].get_rgb(),0x0000ff)
+	test.equal(keypoints[2].get_rgb_html(),"#0000ff")
+	test.equal(keypoints[2].get_start(),91/60)
+	device.close()
+
+
+
+@test
+def test_program_load():
+	print("test_program_load")
+
+
+
+@test
+def test_program_save():
+	print("test_program_save")
+
+
+
+@test
+def test_program_verify():
+	print("test_program_verify")
 
 
 
