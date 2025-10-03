@@ -682,6 +682,15 @@ def _test_keypoint(keypoint,rgb,mask,duration,end):
 
 
 @test
+def test_program_exceptions():
+	TestBackend()
+	test.exception(lambda:LEDSignProgram("wrong_type"),TypeError)
+	test.exception(lambda:LEDSignProgram(LEDSign.open(),12345),TypeError)
+	test.exception(lambda:LEDSignProgramBuilder("wrong_type"),TypeError)
+
+
+
+@test
 def test_program_save_and_load():
 	TestBackend(device_config={"hardware":b"A\x00\x00\x00\x00\x00B\x00","hardware_data":{"A":{"data":[(0,0),(1,0),(1,1)],"width":2},"B":{"data":[(0,0),(1,0),(1,1),(2,2),(3,3)],"width":4}}})
 	device=LEDSign.open()
@@ -758,34 +767,49 @@ def test_program_verify():
 
 
 
-
 @test
-def test_program_builder_command_at():
-	print("test_program_builder_command_at")
-
-
-
-@test
-def test_program_builder_command_after():
-	print("test_program_builder_command_after")
-
-
-
-@test
-def test_program_builder_command_delta_time():
-	print("test_program_builder_command_delta_time")
-
-
-
-@test
-def test_program_builder_command_time():
-	print("test_program_builder_command_time")
+def test_program_builder_time():
+	TestBackend()
+	@LEDSignProgram(LEDSign.open())
+	def program():
+		builder=LEDSignProgramBuilder.instance()
+		test.equal(after,builder.command_after)
+		test.equal(af,builder.command_after)
+		test.equal(at,builder.command_at)
+		test.equal(delta_time,builder.command_delta_time)
+		test.equal(dt,builder.command_delta_time)
+		test.equal(time,builder.command_time)
+		test.equal(tm,builder.command_time)
+		test.exception(lambda:af("wrong_type"),TypeError)
+		test.exception(lambda:at("wrong_type"),TypeError)
+		test.equal(dt(),1/60)
+		test.equal(tm(),1/60)
+		test.equal(at(-1),1/60)
+		test.equal(tm(),1/60)
+		test.equal(at(0),1/60)
+		test.equal(tm(),1/60)
+		test.equal(at(1.5),1.5)
+		test.equal(tm(),1.5)
+		test.equal(af(0.5),2.0)
+		test.equal(tm(),2.0)
+		test.equal(af(-1.5),0.5)
+		test.equal(tm(),0.5)
+		test.equal(af(-1),1/60)
+		test.equal(tm(),1/60)
 
 
 
 @test
 def test_program_builder_command_hardware():
-	print("test_program_builder_command_hardware")
+	TestBackend()
+	device=LEDSign.open()
+	@LEDSignProgram(device)
+	def program():
+		builder=LEDSignProgramBuilder.instance()
+		test.equal(hardware,builder.command_hardware)
+		test.equal(hw,builder.command_hardware)
+		test.equal(hw(),device.get_hardware())
+	device.close()
 
 
 
@@ -815,7 +839,12 @@ def test_program_builder_command_hsv():
 
 @test
 def test_program_builder_instance():
-	print("test_program_builder_instance")
+	TestBackend()
+	test.equal(LEDSignProgramBuilder.instance(),None)
+	@LEDSignProgram(LEDSign.open())
+	def program():
+		test.equal(LEDSignProgramBuilder.instance() is not None,True)
+	test.equal(LEDSignProgramBuilder.instance(),None)
 
 
 

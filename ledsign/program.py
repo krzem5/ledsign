@@ -59,7 +59,6 @@ class LEDSignProgram(object):
 			def mark_program_end(duration):
 			    at(duration)
 			    end()
-			    at(0)
 
 			program = ledsign.LEDSignProgram(device)
 			program(mark_program_end, args = (4.0,))
@@ -314,7 +313,7 @@ class LEDSignProgramBuilder(object):
 		if (not isinstance(time,int) and not isinstance(time,float)):
 			raise TypeError(f"Expected 'int' or 'float', got '{time.__class__.__name__}'")
 		self.time=max(round(time*60),1)
-		return self.time
+		return self.time/60
 
 	def command_after(self,delta_time:int|float) -> float:
 		"""
@@ -323,7 +322,7 @@ class LEDSignProgramBuilder(object):
 		if (not isinstance(delta_time,int) and not isinstance(delta_time,float)):
 			raise TypeError(f"Expected 'int' or 'float', got '{delta_time.__class__.__name__}'")
 		self.time=max(self.time+round(delta_time*60),1)
-		return self.time
+		return self.time/60
 
 	def command_delta_time(self) -> float:
 		"""
