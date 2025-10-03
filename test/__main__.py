@@ -80,17 +80,17 @@ class TestBackendDeviceContext(object):
 		self.inject_protocol_error=inject_protocol_error
 		self.handshake_state=TestBackendDeviceContext.HANDSHAKE_OPEN
 		self.config={
-			**config,
 			"storage": 4096,
 			"hardware_config": bytearray(8),
-			"program_ctrl": 0,
-			"program_crc": 0,
-			"brightness": 0,
-			"access_mode": 1,
-			"psu_current": 0,
+			"program_ctrl": 0x000000,
+			"program_crc": 0x000000,
+			"brightness": 0x00,
+			"access_mode": 0x02,
+			"psu_current": 0.0,
 			"running": False,
 			"firmware_version": bytearray(20),
-			"serial_number": 0
+			"serial_number": 0x0000000000000000,
+			**config
 		}
 
 	def _error_packet(self,expected=False):
@@ -133,7 +133,7 @@ class TestBackendDeviceContext(object):
 
 
 class TestBackend(object):
-	def __init__(self,device_list=[],device_supported_protocol_version=TestBackendDeviceContext.PROTOCOL_VERSION,device_inject_protocol_error=False,device_config={}) -> None:
+	def __init__(self,device_list=["/path/to/dev0"],device_supported_protocol_version=TestBackendDeviceContext.PROTOCOL_VERSION,device_inject_protocol_error=False,device_config={}) -> None:
 		self.device_list=device_list
 		self.device_supported_protocol_version=device_supported_protocol_version
 		self.device_inject_protocol_error=device_inject_protocol_error
@@ -188,14 +188,14 @@ test=TestManager()
 
 @test
 def test_device_enumerate():
-	TestBackend()
+	TestBackend(device_list=[])
 	test.equal(LEDSign.enumerate(),[])
 	test.equal(LEDSign.enumerate(),[])
 	device_list=["/path/to/dev0","/path/to/dev1"]
 	TestBackend(device_list=device_list)
 	test.equal(LEDSign.enumerate(),device_list)
 	test.equal(LEDSign.enumerate(),device_list)
-	TestBackend()
+	TestBackend(device_list=[])
 	test.equal(LEDSign.enumerate(),[])
 	test.equal(LEDSign.enumerate(),[])
 
@@ -203,7 +203,7 @@ def test_device_enumerate():
 
 @test
 def test_device_open():
-	TestBackend()
+	TestBackend(device_list=[])
 	test.exception(lambda:LEDSign.open(12345),TypeError)
 	test.exception(LEDSign.open,LEDSignDeviceNotFoundError)
 	test.exception(lambda:LEDSign.open("/invalid/device/path"),Exception)
@@ -212,14 +212,78 @@ def test_device_open():
 	test.equal(LEDSign.open().get_path(),device_list[0])
 	test.equal(LEDSign.open(device_list[0]).get_path(),device_list[0])
 	test.equal(LEDSign.open(device_list[1]).get_path(),device_list[1])
-	TestBackend(device_list=device_list,device_supported_protocol_version=0xbeef)
+	TestBackend(device_supported_protocol_version=0xbeef)
 	test.exception(LEDSign.open,LEDSignUnsupportedProtocolError)
-	TestBackend(device_list=device_list)
+	TestBackend()
 	device=LEDSign.open()
 	test.exception(LEDSign.open,Exception)
 	device.close()
-	TestBackend(device_list=device_list,device_inject_protocol_error=True)
+	TestBackend(device_inject_protocol_error=True)
 	test.exception(LEDSign.open,LEDSignProtocolError)
+
+
+
+@test
+def test_device_close():
+	TestBackend()
+	device=LEDSign.open()
+	program=device.get_program().compile()
+	device.close()
+	test.exception(device.close,LEDSignAccessError)
+	test.exception(device.get_psu_current,LEDSignAccessError)
+	test.exception(device.get_storage_size,LEDSignAccessError)
+	test.exception(device.get_hardware,LEDSignAccessError)
+	test.exception(device.get_firmware,LEDSignAccessError)
+	test.exception(device.get_serial_number,LEDSignAccessError)
+	test.exception(device.get_serial_number_str,LEDSignAccessError)
+	test.exception(device.get_driver_brightness,LEDSignAccessError)
+	test.exception(device.is_driver_paused,LEDSignAccessError)
+	test.exception(device.get_driver_temperature,LEDSignAccessError)
+	test.exception(device.get_driver_load,LEDSignAccessError)
+	test.exception(device.get_driver_program_time,LEDSignAccessError)
+	test.exception(device.get_driver_current_usage,LEDSignAccessError)
+	test.exception(device.get_driver_status_reload_time,LEDSignAccessError)
+	test.exception(lambda:device.set_driver_status_reload_time(0.5),LEDSignAccessError)
+	test.exception(device.get_program,LEDSignAccessError)
+	test.exception(lambda:device.upload_program(program),LEDSignAccessError)
+
+
+
+@test
+def test_device_access_mode():
+	TestBackend(device_config={"access_mode":0x01})
+	device=LEDSign.open()
+	test.equal(device.get_access_mode(),LEDSign.ACCESS_MODE_READ)
+	device.close()
+	test.equal(device.get_access_mode(),LEDSign.ACCESS_MODE_NONE)
+	TestBackend(device_config={"access_mode":0x02})
+	device=LEDSign.open()
+	test.equal(device.get_access_mode(),LEDSign.ACCESS_MODE_READ_WRITE)
+	device.close()
+	test.equal(device.get_access_mode(),LEDSign.ACCESS_MODE_NONE)
+
+
+
+@test
+def test_device_access_mode_str():
+	TestBackend(device_config={"access_mode":0x01})
+	device=LEDSign.open()
+	test.equal(device.get_access_mode_str(),"read-only")
+	device.close()
+	test.equal(device.get_access_mode_str(),"none")
+	TestBackend(device_config={"access_mode":0x02})
+	device=LEDSign.open()
+	test.equal(device.get_access_mode_str(),"read-write")
+	device.close()
+	test.equal(device.get_access_mode_str(),"none")
+
+
+
+@test
+def test_device_driver_brightness():
+	for driver_value,value in [(0,0.00),(1,0.15),(2,0.30),(3,0.45),(4,0.55),(5,0.70),(6,0.85),(7,1.00)]:
+		TestBackend(device_config={"brightness":driver_value})
+		test.equal(LEDSign.open().get_driver_brightness(),value)
 
 
 
