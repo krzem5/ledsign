@@ -66,7 +66,7 @@ class LEDSignProtocol(object):
 	def process_packet(handle:object,ret_type:int,type:int,*args:tuple[int,...]) -> tuple[int,...]:
 		ret=LEDSignProtocol._backend.io_read_write(handle,struct.pack(LEDSignProtocol.PACKET_FORMATS[type],type,struct.calcsize(LEDSignProtocol.PACKET_FORMATS[type]),*args))
 		if (len(ret)<2 or ret[0]!=ret_type or ret[1]!=len(ret) or ret[1]!=struct.calcsize(LEDSignProtocol.PACKET_FORMATS[ret_type])):
-			if (ret_type==LEDSignProtocol.PACKET_TYPE_DEVICE_INFO and type==LEDSignProtocol.PACKET_TYPE_HOST_INFO):
+			if (ret_type==LEDSignProtocol.PACKET_TYPE_DEVICE_INFO and type==LEDSignProtocol.PACKET_TYPE_HOST_INFO and len(ret)==2 and ret[0]==LEDSignProtocol.PACKET_TYPE_NONE and ret[1]==2):
 				raise LEDSignUnsupportedProtocolError("Protocol version not supported")
 			raise LEDSignProtocolError("Protocol error")
 		return struct.unpack(LEDSignProtocol.PACKET_FORMATS[ret_type],ret)[2:]
