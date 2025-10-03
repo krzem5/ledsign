@@ -233,7 +233,7 @@ class LEDSign(object):
 
 	def get_driver_status_reload_time(self) -> float:
 		"""
-		Returns the current refresh interval (in seconds) used for fetching driver data. Can be modified using :py:func:`set_driver_status_reload_time`.
+		Returns the current refresh interval (in seconds) used for fetching driver data, or :python:`-1` if caching is disabled. Can be modified using :py:func:`set_driver_status_reload_time`.
 		"""
 		self._check_if_closed()
 		return self._driver_info_sync_interval
@@ -245,6 +245,7 @@ class LEDSign(object):
 		self._check_if_closed()
 		out=self._driver_info_sync_interval
 		self._driver_info_sync_interval=(-1 if interval<=0 else interval)
+		self._driver_info_sync_next_time+=self._driver_info_sync_interval-out
 		return out
 
 	def get_program(self) -> LEDSignProgram:

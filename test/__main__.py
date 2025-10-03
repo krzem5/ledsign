@@ -3,6 +3,7 @@ from ledsign.protocol import LEDSignProtocol
 import random
 import struct
 import sys
+import time
 
 
 
@@ -119,7 +120,7 @@ class TestBackendDeviceContext(object):
 			TestBackendDeviceContext.PACKET_TYPE_DEVICE_INFO,
 			54,
 			self.supported_protocol_version,
-			self.config["storage"]>>10,
+			self.config["storage"],
 			self.config["hardware"],
 			self.config["program_ctrl"],
 			self.config["program_crc"],
@@ -323,6 +324,87 @@ def test_device_access_mode_str():
 
 
 @test
+def test_device_firmware():
+	firmware=bytearray(20)
+	firmware_str=""
+	for i in range(0,len(firmware)):
+		firmware[i]=random.randint(0,255)
+		firmware_str+=f"{firmware[i]:02x}"
+	TestBackend(device_config={"firmware_version":firmware})
+	test.equal(LEDSign.open().get_firmware(),firmware_str)
+
+
+
+@test
+def test_device_hardware():
+	for device_hardware,str_hardware,user_hardware in [
+		(b"\x00\x00\x00\x00\x00\x00\x00\x00","[00 00 00 00 00 00 00 00]",""),
+		(b"\x00A\x00\x00\x00\x00\x00\x00","[00 41 00 00 00 00 00 00]","A"),
+		(b"A\x00B\x00\x00CDE","[41 00 42 00 00 43 44 45]","ABCDE"),
+	]:
+		TestBackend(device_config={"hardware":device_hardware})
+		device=LEDSign.open()
+		test.equal(device.get_hardware().get_raw(),device_hardware)
+		test.equal(device.get_hardware().get_string(),str_hardware)
+		test.equal(device.get_hardware().get_user_string(),user_hardware)
+		device.close()
+
+
+
+@test
+def test_device_path():
+	device_list=["/path/to/dev0","/path/to/dev1"]
+	TestBackend(device_list=device_list)
+	device=LEDSign.open()
+	test.equal(device.get_path(),device_list[0])
+	device.close()
+	test.equal(device.get_path(),None)
+
+
+
+@test
+def test_device_psu_current():
+	for i in range(0,105,5):
+		TestBackend(device_config={"psu_current":i})
+		test.equal(LEDSign.open().get_psu_current(),i/10)
+
+
+
+@test
+def test_device_serial_number():
+	serial_number=random.getrandbits(64)
+	TestBackend(device_config={"serial_number":serial_number})
+	test.equal(LEDSign.open().get_serial_number(),serial_number)
+
+
+
+@test
+def test_device_serial_number_str():
+	serial_number=random.getrandbits(64)
+	TestBackend(device_config={"serial_number":serial_number})
+	test.equal(LEDSign.open().get_serial_number_str(),f"{serial_number:016x}")
+
+
+
+@test
+def test_device_storage_size():
+	for i in range(0,16384,128):
+		TestBackend(device_config={"storage":i})
+		test.equal(LEDSign.open().get_storage_size(),i<<10)
+
+
+
+@test
+def test_device_program_upload():
+	TestBackend(device_config={"access_mode":0x01})
+	device=LEDSign.open()
+	test.exception(lambda:device.upload_program("wrong_type"),TypeError)
+	test.exception(lambda:device.upload_program(device.get_program().compile()),LEDSignAccessError)
+	device.close()
+
+
+
+@test
 def test_device_driver_brightness():
 	for driver_value,value in [(0,0.00),(1,0.15),(2,0.30),(3,0.45),(4,0.55),(5,0.70),(6,0.85),(7,1.00)]:
 		TestBackend(device_config={"brightness":driver_value})
@@ -373,30 +455,35 @@ def test_device_driver_temperature():
 
 
 @test
-def test_device_firmware():
-	firmware=bytearray(20)
-	firmware_str=""
-	for i in range(0,len(firmware)):
-		firmware[i]=random.randint(0,255)
-		firmware_str+=f"{firmware[i]:02x}"
-	TestBackend(device_config={"firmware_version":firmware})
-	test.equal(LEDSign.open().get_firmware(),firmware_str)
+def test_device_driver_pause():
+	TestBackend(device_config={"running":False})
+	test.equal(LEDSign.open().is_driver_paused(),True)
+	TestBackend(device_config={"running":True})
+	test.equal(LEDSign.open().is_driver_paused(),False)
 
 
 
 @test
-def test_device_hardware():
-	for device_hardware,str_hardware,user_hardware in [
-		(b"\x00\x00\x00\x00\x00\x00\x00\x00","[00 00 00 00 00 00 00 00]",""),
-		(b"\x00A\x00\x00\x00\x00\x00\x00","[00 41 00 00 00 00 00 00]","A"),
-		(b"A\x00B\x00\x00CDE","[41 00 42 00 00 43 44 45]","ABCDE"),
-	]:
-		TestBackend(device_config={"hardware":device_hardware})
-		device=LEDSign.open()
-		test.equal(device.get_hardware().get_raw(),device_hardware)
-		test.equal(device.get_hardware().get_string(),str_hardware)
-		test.equal(device.get_hardware().get_user_string(),user_hardware)
-		device.close()
+def test_device_driver_reload_time():
+	dynamic_driver_config={"temperature":0,"load":0,"program_offset":0,"current_usage":0}
+	TestBackend(device_config={"driver":dynamic_driver_config})
+	device=LEDSign.open()
+	device.set_driver_status_reload_time(0.5)
+	test.equal(device.get_driver_status_reload_time(),0.5)
+	test.equal(device.set_driver_status_reload_time(-12345),0.5)
+	test.equal(device.get_driver_status_reload_time(),-1)
+	device.set_driver_status_reload_time(0.1)
+	test.equal(device.get_driver_current_usage(),0.0)
+	dynamic_driver_config["current_usage"]=1_000_000
+	test.equal(device.get_driver_current_usage(),0.0)
+	time.sleep(0.1)
+	test.equal(device.get_driver_current_usage(),1.0)
+	device.set_driver_status_reload_time(-1)
+	test.equal(device.get_driver_current_usage(),1.0)
+	dynamic_driver_config["current_usage"]=0
+	print(device.get_driver_current_usage())
+	test.equal(device.get_driver_current_usage(),0.0)
+	device.close()
 
 
 
