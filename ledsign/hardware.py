@@ -34,7 +34,7 @@ class LEDSignHardware(object):
 			key=self._raw_config[i]
 			if (key not in geometry_map):
 				geometry_map[key]=array.array("I")
-				length,width,_=LEDSignProtocol.process_packet(handle,LEDSignProtocol.PACKET_TYPE_HARDWARE_DATA_RESPONSE,LEDSignProtocol.PACKET_TYPE_HARDWARE_DATA_REQUEST,key)
+				length,width=LEDSignProtocol.process_packet(handle,LEDSignProtocol.PACKET_TYPE_HARDWARE_DATA_RESPONSE,LEDSignProtocol.PACKET_TYPE_HARDWARE_DATA_REQUEST,key)
 				width_map[key]=width*LEDSignHardware.SCALE
 				geometry_map[key].frombytes(LEDSignProtocol.process_extended_read(handle,length))
 			self._led_depth=max(self._led_depth,len(geometry_map[key]))
