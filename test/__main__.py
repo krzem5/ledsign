@@ -671,8 +671,18 @@ def test_selector_pixels():
 
 
 
+def _test_keypoint(keypoint,rgb,mask,duration,end):
+	test.equal(keypoint.get_duration(),duration)
+	test.equal(keypoint.get_end(),end)
+	test.equal(keypoint.get_mask(),mask)
+	test.equal(keypoint.get_rgb(),rgb)
+	test.equal(keypoint.get_rgb_html(),f"#{rgb:06x}")
+	test.equal(keypoint.get_start(),end-duration)
+
+
+
 @test
-def test_program_load():
+def test_program_save_and_load():
 	TestBackend(device_config={"hardware":b"A\x00\x00\x00\x00\x00B\x00","hardware_data":{"A":{"data":[(0,0),(1,0),(1,1)],"width":2},"B":{"data":[(0,0),(1,0),(1,1),(2,2),(3,3)],"width":4}}})
 	device=LEDSign.open()
 	@LEDSignProgram(device)
@@ -689,18 +699,9 @@ def test_program_load():
 	test.equal(program.get_duration(),181/60)
 	keypoints=tuple(program.get_keypoints())
 	test.equal(len(keypoints),3)
-	test.equal(keypoints[0].get_duration(),1/60)
-	test.equal(keypoints[0].get_end(),1/60)
-	test.equal(keypoints[0].get_mask(),LEDSignSelector.get_mask(hardware=device.get_hardware()))
-	test.equal(keypoints[0].get_rgb(),0xff0000)
-	test.equal(keypoints[1].get_duration(),1/60)
-	test.equal(keypoints[1].get_end(),61/60)
-	test.equal(keypoints[1].get_mask(),5)
-	test.equal(keypoints[1].get_rgb(),0x00ff00)
-	test.equal(keypoints[2].get_duration(),30/60)
-	test.equal(keypoints[2].get_end(),121/60)
-	test.equal(keypoints[2].get_mask(),LEDSignSelector.get_mask(hardware=device.get_hardware()))
-	test.equal(keypoints[2].get_rgb(),0x0000ff)
+	_test_keypoint(keypoints[0],0xff0000,LEDSignSelector.get_mask(hardware=device.get_hardware()),1/60,1/60)
+	_test_keypoint(keypoints[1],0x00ff00,5,1/60,61/60)
+	_test_keypoint(keypoints[2],0x0000ff,LEDSignSelector.get_mask(hardware=device.get_hardware()),30/60,121/60)
 	device.close()
 
 
@@ -738,24 +739,9 @@ def test_program_keypoints():
 		end()
 	keypoints=tuple(program.get_keypoints())
 	test.equal(len(keypoints),3)
-	test.equal(keypoints[0].get_duration(),1/60)
-	test.equal(keypoints[0].get_end(),1/60)
-	test.equal(keypoints[0].get_mask(),LEDSignSelector.get_mask(hardware=device.get_hardware()))
-	test.equal(keypoints[0].get_rgb(),0xff0000)
-	test.equal(keypoints[0].get_rgb_html(),"#ff0000")
-	test.equal(keypoints[0].get_start(),0/60)
-	test.equal(keypoints[1].get_duration(),1/60)
-	test.equal(keypoints[1].get_end(),61/60)
-	test.equal(keypoints[1].get_mask(),5)
-	test.equal(keypoints[1].get_rgb(),0x2eaa34)
-	test.equal(keypoints[1].get_rgb_html(),"#2eaa34")
-	test.equal(keypoints[1].get_start(),60/60)
-	test.equal(keypoints[2].get_duration(),30/60)
-	test.equal(keypoints[2].get_end(),121/60)
-	test.equal(keypoints[2].get_mask(),LEDSignSelector.get_mask(hardware=device.get_hardware()))
-	test.equal(keypoints[2].get_rgb(),0x0000ff)
-	test.equal(keypoints[2].get_rgb_html(),"#0000ff")
-	test.equal(keypoints[2].get_start(),91/60)
+	_test_keypoint(keypoints[0],0xff0000,LEDSignSelector.get_mask(hardware=device.get_hardware()),1/60,1/60)
+	_test_keypoint(keypoints[1],0x2eaa34,5,1/60,61/60)
+	_test_keypoint(keypoints[2],0x0000ff,LEDSignSelector.get_mask(hardware=device.get_hardware()),30/60,121/60)
 	device.close()
 
 
@@ -767,14 +753,69 @@ def test_program_load():
 
 
 @test
-def test_program_save():
-	print("test_program_save")
+def test_program_verify():
+	print("test_program_verify")
+
 
 
 
 @test
-def test_program_verify():
-	print("test_program_verify")
+def test_program_builder_command_at():
+	print("test_program_builder_command_at")
+
+
+
+@test
+def test_program_builder_command_after():
+	print("test_program_builder_command_after")
+
+
+
+@test
+def test_program_builder_command_delta_time():
+	print("test_program_builder_command_delta_time")
+
+
+
+@test
+def test_program_builder_command_time():
+	print("test_program_builder_command_time")
+
+
+
+@test
+def test_program_builder_command_hardware():
+	print("test_program_builder_command_hardware")
+
+
+
+@test
+def test_program_builder_command_keypoint():
+	print("test_program_builder_command_keypoint")
+
+
+
+@test
+def test_program_builder_command_end():
+	print("test_program_builder_command_end")
+
+
+
+@test
+def test_program_builder_command_rgb():
+	print("test_program_builder_command_rgb")
+
+
+
+@test
+def test_program_builder_command_hsv():
+	print("test_program_builder_command_hsv")
+
+
+
+@test
+def test_program_builder_instance():
+	print("test_program_builder_instance")
 
 
 
