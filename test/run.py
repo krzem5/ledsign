@@ -1,6 +1,7 @@
 import json
 import os
 import subprocess
+import sys
 
 
 
@@ -13,4 +14,7 @@ subprocess.run(["python3","-m","coverage","json","--data-file","build/coverage",
 subprocess.run(["python3","-m","coverage","html","--data-file","build/coverage","-d","build/coverage_html","-q","--rcfile=build/.coveragerc"])
 with open("build/coverage.json","r") as rf:
 	stats=json.loads(rf.read())["totals"]
-print(f"Coverage: {stats["percent_covered"]:.2f}%")
+with open("build/test_result.txt","r") as rf:
+	passed_tests,failed_tests=map(int,rf.read().strip().split(","))
+print(f"Passed tests: {passed_tests}, failed tests: {failed_tests}, coverage: {stats["percent_covered"]:.2f}%")
+sys.exit((1 if failed_tests else 0))

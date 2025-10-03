@@ -288,7 +288,7 @@ class LEDSignProgramBuilder(object):
 
 	def __init__(self,program:LEDSignProgram) -> None:
 		if (not isinstance(program,LEDSignProgram) or not program._builder_ready):
-			raise RuntimeError("Direct initialization of LEDSignProgramBuilder is not supported")
+			raise TypeError("Direct initialization of LEDSignProgramBuilder is not supported")
 		self.program=program
 		self.time=1
 

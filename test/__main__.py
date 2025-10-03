@@ -25,7 +25,8 @@ class TestManager(object):
 		for fn in self._functions:
 			fn()
 		TestManager._instance=None
-		print(self._success_count,self._fail_count)
+		with open("build/test_result.txt","w") as wf:
+			wf.write(f"{self._success_count},{self._fail_count}\n")
 
 	def equal(self,a,b):
 		if (a.__class__==b.__class__ and (a==b or (isinstance(a,float) and isinstance(b,float) and abs(a-b)<1e-6))):
@@ -336,22 +337,6 @@ def test_device_firmware():
 
 
 @test
-def test_device_hardware():
-	for device_hardware,str_hardware,user_hardware in [
-		(b"\x00\x00\x00\x00\x00\x00\x00\x00","[00 00 00 00 00 00 00 00]",""),
-		(b"\x00A\x00\x00\x00\x00\x00\x00","[00 41 00 00 00 00 00 00]","A"),
-		(b"A\x00B\x00\x00CDE","[41 00 42 00 00 43 44 45]","ABCDE"),
-	]:
-		TestBackend(device_config={"hardware":device_hardware})
-		device=LEDSign.open()
-		test.equal(device.get_hardware().get_raw(),device_hardware)
-		test.equal(device.get_hardware().get_string(),str_hardware)
-		test.equal(device.get_hardware().get_user_string(),user_hardware)
-		device.close()
-
-
-
-@test
 def test_device_path():
 	device_list=["/path/to/dev0","/path/to/dev1"]
 	TestBackend(device_list=device_list)
@@ -481,9 +466,25 @@ def test_device_driver_reload_time():
 	device.set_driver_status_reload_time(-1)
 	test.equal(device.get_driver_current_usage(),1.0)
 	dynamic_driver_config["current_usage"]=0
-	print(device.get_driver_current_usage())
 	test.equal(device.get_driver_current_usage(),0.0)
 	device.close()
+
+
+
+@test
+def test_hardware():
+	test.exception(lambda:LEDSignHardware(None,None),TypeError)
+	for device_hardware,str_hardware,user_hardware in [
+		(b"\x00\x00\x00\x00\x00\x00\x00\x00","[00 00 00 00 00 00 00 00]",""),
+		(b"\x00A\x00\x00\x00\x00\x00\x00","[00 41 00 00 00 00 00 00]","A"),
+		(b"A\x00B\x00\x00CDE","[41 00 42 00 00 43 44 45]","ABCDE"),
+	]:
+		TestBackend(device_config={"hardware":device_hardware})
+		device=LEDSign.open()
+		test.equal(device.get_hardware().get_raw(),device_hardware)
+		test.equal(device.get_hardware().get_string(),str_hardware)
+		test.equal(device.get_hardware().get_user_string(),user_hardware)
+		device.close()
 
 
 

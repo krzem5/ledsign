@@ -20,7 +20,7 @@ class LEDSignHardware(object):
 
 	def __init__(self,handle,config) -> None:
 		if (not isinstance(config,bytes) or len(config)!=8):
-			raise RuntimeError("Direct initialization of LEDSignHardware is not supported")
+			raise TypeError("Direct initialization of LEDSignHardware is not supported")
 		self._raw_config=config
 		self._led_depth=0
 		self._pixels=[]
