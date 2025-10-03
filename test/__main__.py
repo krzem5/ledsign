@@ -537,7 +537,7 @@ def test_selector_center():
 
 @test
 def test_selector_circle_mask():
-	TestBackend(device_config={"hardware":b"A\x00\x00\x00\x00\x00A\x00","hardware_data":{"A":{"data":[(0,0),(1,0),(1,1),(5,5)],"width":6}}})
+	TestBackend(device_config={"hardware":b"A\x00\x00\x00\x00\x00\x00\x00\x00","hardware_data":{"A":{"data":[(0,0),(1,0),(1,1),(5,5)],"width":6}}})
 	device=LEDSign.open()
 	test.exception(LEDSignSelector.get_circle_mask,TypeError)
 	@LEDSignProgram(device)
@@ -549,8 +549,14 @@ def test_selector_circle_mask():
 		test.exception(lambda:LEDSignSelector.get_circle_mask(0.0,0.0,-1.0),ValueError)
 		test.exception(lambda:LEDSignSelector.get_circle_mask(0.0,0.0,1.0,mask="wrong_type"),TypeError)
 		test.exception(lambda:LEDSignSelector.get_circle_mask(hardware="wrong_type"),TypeError)
+		test.equal(LEDSignSelector.get_circle_mask(1.0,0.0,0.0),2)
+		test.equal(LEDSignSelector.get_circle_mask(1.0,0.5,0.6),6)
+		test.equal(LEDSignSelector.get_circle_mask(1.0,0.0,1.0),7)
+		test.equal(LEDSignSelector.get_circle_mask(5.0,5.0,4.0),8)
+		test.equal(LEDSignSelector.get_circle_mask(5.0,5.0,5.0*2**0.5),15)
+		test.equal(LEDSignSelector.get_circle_mask(1.0,0.0,0.0),2)
+		test.equal(LEDSignSelector.get_circle_mask(1.0,0.5,0.6,mask=3),2)
 	device.close()
-	print("test_selector_circle_mask")
 
 
 
@@ -637,8 +643,11 @@ def test_selector_pixels():
 		test.exception(lambda:tuple(LEDSignSelector.get_pixels(letter=-1)),IndexError)
 		test.exception(lambda:tuple(LEDSignSelector.get_pixels(letter=2)),IndexError)
 		test.exception(lambda:tuple(LEDSignSelector.get_pixels(hardware="wrong_type")),TypeError)
+		test.equal(tuple(LEDSignSelector.get_pixels()),((0.0,0.0,1),(1.0,0.0,2),(1.0,1.0,4),(2.0,0.0,1<<30),(3.0,0.0,2<<30),(3.0,1.0,4<<30),(4.0,2.0,8<<30),(5.0,3.0,16<<30)))
+		test.equal(tuple(LEDSignSelector.get_pixels(letter=0)),((0.0,0.0,1),(1.0,0.0,2),(1.0,1.0,4)))
+		test.equal(tuple(LEDSignSelector.get_pixels(mask=5|LEDSignSelector.get_letter_mask(1),letter=0)),((0.0,0.0,1),(1.0,1.0,4)))
+		test.equal(tuple(LEDSignSelector.get_pixels(mask=3|(16<<30))),((0.0,0.0,1),(1.0,0.0,2),(5.0,3.0,16<<30)))
 	device.close()
-	print("test_selector_pixels")
 
 
 
