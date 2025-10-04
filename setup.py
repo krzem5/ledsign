@@ -2,7 +2,7 @@ import setuptools
 
 
 
-VERSION="0.6.0"
+VERSION="0.7.0"
 
 
 
@@ -21,7 +21,6 @@ setuptools.setup(
 	classifiers=[
 		"Development Status :: 4 - Beta",
 		"Intended Audience :: End Users/Desktop",
-		"License :: OSI Approved :: BSD License",
 		"Natural Language :: English",
 		"Operating System :: Microsoft :: Windows",
 		"Operating System :: POSIX :: Linux",
