@@ -32,6 +32,8 @@ class LEDSignProgram(object):
 	An instance of this class can be used as a function decorator to generate programs dynamically (see :py:class:`LEDSignProgramBuilder` or :py:func:`__call__` for details).
 	"""
 
+	error_output_file=sys.stderr
+
 	__slots__=["_hardware","_duration","_keypoint_list","_load_parameters","_builder_ready","_has_error"]
 
 	def __init__(self,device:"LEDSign",file_path:str|None=None) -> None:
@@ -51,7 +53,7 @@ class LEDSignProgram(object):
 	def __repr__(self) -> str:
 		return f"<LEDSignProgram{('[unloaded]' if self._load_parameters is not None else '')} hardware={self._hardware.get_string()} duration={self._duration/60:.3f}s>"
 
-	def __call__(self,func:Callable[[],None],args:tuple=(),kwargs:dict={},inject_commands:bool=True,bypass_errors:bool=False) -> "LEDSignProgram":
+	def __call__(self,func:Callable[[],None],args:tuple|list=(),kwargs:dict={},inject_commands:bool=True,bypass_errors:bool=False) -> "LEDSignProgram":
 		"""
 		Explicitly generates a program from the given function :python:`func(*args, **kwargs)`, and optionally bypasses error verification if the :python:`bypass_errors` flag is set. Explicit uses of this method are required when 'stitching' a program from multiple functions, or when it is necessary to pass arguments to the supplied function. An example use case might be the following:
 
@@ -69,6 +71,12 @@ class LEDSignProgram(object):
 
 		For advanced use cases, command alias injection can be disabled through the :python:`inject_commands` argument (see :py:class:`LEDSignProgramBuilder` for details about command shorthands).
 		"""
+		if (not callable(func)):
+			raise TypeError(f"Expected 'function', got '{func.__class__.__name__}'")
+		if (not isinstance(args,tuple) and not isinstance(args,list)):
+			raise TypeError(f"Expected 'list' or 'tuple', got '{args.__class__.__name__}'")
+		if (not isinstance(kwargs,dict)):
+			raise TypeError(f"Expected 'dict', got '{kwargs.__class__.__name__}'")
 		self._builder_ready=True
 		builder=LEDSignProgramBuilder(self)
 		self._builder_ready=False
@@ -148,6 +156,8 @@ class LEDSignProgram(object):
 		"""
 		Writes the program to a file pointed to by the :python:`file_path`. Optionally bypasses error verification (if the :python:`bypass_errors` flag is set), or raises :py:exc:`LEDSignProgramError` if the program contains unresolved errors.
 		"""
+		if (not isinstance(file_path,str)):
+			raise TypeError(f"Expected 'str', got '{file_path.__class__.__name__}'")
 		self.load()
 		if (self._has_error and not bypass_errors):
 			raise LEDSignProgramError("Unresolved program errors")
@@ -207,13 +217,12 @@ class LEDSignProgram(object):
 		while (kp is not None):
 			start=kp.end-kp.duration
 			if (start<0):
-				print(f"Keypoint overlap: ({-start/60:.3f}s)\n  <timeline_start>\n  {kp._frame}")
+				print(f"Keypoint overlap: ({-start/60:.3f}s)\n  <timeline_start>\n  {kp._frame}",file=LEDSignProgram.error_output_file)
 				self._has_error=True
 			entry=self._keypoint_list.lookup_decreasing(kp._key-1,kp.mask)
 			while (entry is not None and entry.end>start):
-				if (entry!=kp):
-					print(f"Keypoint overlap: ({(entry.end-start)/60:.3f}s)\n  {entry._frame}\n  {kp._frame}")
-					self._has_error=True
+				print(f"Keypoint overlap: ({(entry.end-start)/60:.3f}s)\n  {entry._frame}\n  {kp._frame}",file=LEDSignProgram.error_output_file)
+				self._has_error=True
 				entry=self._keypoint_list.lookup_decreasing(entry._key-1,kp.mask)
 			kp=self._keypoint_list.lookup_increasing(kp._key+1,-1)
 		return not self._has_error

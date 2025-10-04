@@ -1,6 +1,7 @@
 from ledsign import *
 from ledsign.checksum import LEDSignCRC
 from ledsign.protocol import LEDSignProtocol
+import io
 import random
 import struct
 import sys
@@ -879,6 +880,18 @@ def test_program_exceptions():
 @test
 def test_program_save_and_load():
 	TestBackend(device_config={"hardware":b"A\x00\x00\x00\x00\x00B\x00","hardware_data":{"A":{"data":[(0,0),(1,0),(1,1),(2,2)],"width":2},"B":{"data":[(0,0),(1,0),(1,1),(2,2),(3,3)],"width":4}}})
+	LEDSignProgram.error_output_file=io.StringIO()
+	program=LEDSignProgram(LEDSign.open())(lambda:kp(0,duration=1))
+	test.exception(lambda:program.save(12345),TypeError)
+	test.exception(lambda:program.save("build/temp.led"),LEDSignProgramError)
+	program=LEDSignProgram(LEDSign.open())(lambda:kp(0,duration=1),bypass_errors=True)
+	test.exception(lambda:program.save("build/temp.led"),LEDSignProgramError)
+	program=LEDSignProgram(LEDSign.open())(lambda:kp(0,duration=1),bypass_errors=True)
+	test.equal(program.save("build/temp.led",bypass_errors=True),None)
+	program=LEDSignProgram(LEDSign.open())(lambda:kp(0,duration=0))
+	test.equal(program.save("build/temp.led",bypass_errors=True),None)
+	program=LEDSignProgram(LEDSign.open())(lambda:kp(0,duration=0))
+	test.equal(program.save("build/temp.led"),None)
 	device=LEDSign.open()
 	@LEDSignProgram(device)
 	def program():
@@ -933,13 +946,37 @@ def test_program_save_and_load():
 
 @test
 def test_program_generate():
-	print("test_program_generate")
+	TestBackend(device_config={"hardware":b"A\x00\x00\x00\x00\x00B\x00","hardware_data":{"A":{"data":[(0,0),(1,0),(1,1)],"width":2},"B":{"data":[(0,0),(1,0),(1,1),(2,2),(3,3)],"width":4}}})
+	device=LEDSign.open()
+	test.exception(lambda:LEDSignProgram(device)("wrong_type"),TypeError)
+	test.exception(lambda:LEDSignProgram(device)(lambda:None,args="wrong_type"),TypeError)
+	test.exception(lambda:LEDSignProgram(device)(lambda:None,kwargs="wrong_type"),TypeError)
+	test.exception(lambda:LEDSignProgram(device)(lambda:end(),inject_commands=False),NameError)
+	program=LEDSignProgram(device)
+	test.equal(program(lambda:None),program)
+	LEDSignProgram.error_output_file=io.StringIO()
+	program(lambda:kp(0,duration=1),bypass_errors=True)
+	test.equal(LEDSignProgram.error_output_file.getvalue(),"")
+	program(lambda:kp(0,duration=1))
+	test.equal(len(LEDSignProgram.error_output_file.getvalue())>0,True)
+	device.close()
 
 
 
 @test
 def test_program_compile():
-	print("test_program_compile")
+	TestBackend(device_config={"hardware":b"A\x00\x00\x00\x00\x00B\x00","hardware_data":{"A":{"data":[(0,0),(1,0),(1,1)],"width":2},"B":{"data":[(0,0),(1,0),(1,1),(2,2),(3,3)],"width":4}}})
+	LEDSignProgram.error_output_file=io.StringIO()
+	program=LEDSignProgram(LEDSign.open())(lambda:kp(0,duration=1))
+	test.exception(program.compile,LEDSignProgramError)
+	program=LEDSignProgram(LEDSign.open())(lambda:kp(0,duration=1),bypass_errors=True)
+	test.exception(program.compile,LEDSignProgramError)
+	program=LEDSignProgram(LEDSign.open())(lambda:kp(0,duration=1),bypass_errors=True)
+	test.equal(isinstance(program.compile(bypass_errors=True),LEDSignCompiledProgram),True)
+	program=LEDSignProgram(LEDSign.open())(lambda:kp(0,duration=0))
+	test.equal(isinstance(program.compile(bypass_errors=True),LEDSignCompiledProgram),True)
+	program=LEDSignProgram(LEDSign.open())(lambda:kp(0,duration=0))
+	test.equal(isinstance(program.compile(),LEDSignCompiledProgram),True)
 
 
 
@@ -1029,7 +1066,22 @@ def test_program_load():
 
 @test
 def test_program_verify():
-	print("test_program_verify")
+	TestBackend(device_config={"hardware":b"A\x00\x00\x00\x00\x00B\x00","hardware_data":{"A":{"data":[(0,0),(1,0),(1,1)],"width":2},"B":{"data":[(0,0),(1,0),(1,1),(2,2),(3,3)],"width":4}}})
+	LEDSignProgram.error_output_file=io.StringIO()
+	program=LEDSignProgram(LEDSign.open())(lambda:kp(0,duration=1),bypass_errors=True)
+	test.equal(LEDSignProgram.error_output_file.getvalue(),"")
+	test.equal(program.verify(),False)
+	test.equal(len(LEDSignProgram.error_output_file.getvalue())>0,True)
+	LEDSignProgram.error_output_file=io.StringIO()
+	program=LEDSignProgram(LEDSign.open())(lambda:(kp(0,1),kp(1,2),kp(1,1)),bypass_errors=True)
+	test.equal(LEDSignProgram.error_output_file.getvalue(),"")
+	test.equal(program.verify(),False)
+	test.equal(len(LEDSignProgram.error_output_file.getvalue())>0,True)
+	LEDSignProgram.error_output_file=io.StringIO()
+	program=LEDSignProgram(LEDSign.open())(lambda:(kp(0,1),kp(1,2),kp(1,4)),bypass_errors=True)
+	test.equal(LEDSignProgram.error_output_file.getvalue(),"")
+	test.equal(program.verify(),True)
+	test.equal(LEDSignProgram.error_output_file.getvalue(),"")
 
 
 
