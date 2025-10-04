@@ -263,6 +263,8 @@ class LEDSign(object):
 		"""
 		if (not isinstance(program,LEDSignCompiledProgram)):
 			raise TypeError(f"Expected 'LEDSignCompiledProgram', got '{program.__class__.__name__}'")
+		if (callback is not None and not callable(callback)):
+			raise TypeError(f"Expected 'function', got '{callback.__class__.__name__}'")
 		if (self._access_mode!=LEDSign.ACCESS_MODE_READ_WRITE):
 			raise LEDSignAccessError("Program upload not allowed, Python API configured as read-only")
 		program._upload_to_device(self,callback)

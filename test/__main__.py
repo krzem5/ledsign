@@ -65,6 +65,7 @@ class TestManager(object):
 
 class TestBackendDeviceContextProgramUpload(object):
 	def __init__(self):
+		self.events=[]
 		self.ctrl=None
 		self.crc=None
 		self.data=None
@@ -72,8 +73,10 @@ class TestBackendDeviceContextProgramUpload(object):
 		self.offset=None
 		self.chunk_size=None
 		self.clear_progress=None
+		self.skip_next_status=False
 
 	def setup(self,ctrl,crc):
+		self.events=[(0.0,False)]
 		self.ctrl=ctrl
 		self.crc=crc
 		self.data=bytearray((ctrl>>8)<<2)
@@ -81,14 +84,22 @@ class TestBackendDeviceContextProgramUpload(object):
 		self.offset=0
 		self.chunk_size=0
 		self.clear_progress=0
+		self.skip_next_status=False
 
 	def get_status(self):
 		self.chunk_size=0
 		if (self.clear_progress<len(self.data)):
 			time.sleep(0.01)
 			self.clear_progress+=65536
+			self.events.append((min(self.clear_progress/len(self.data),1.0),False))
+			if (self.clear_progress>=len(self.data)):
+				self.events.append((0.0,True))
 		else:
-			self.chunk_size=max(min(8192,len(self.data)-self.offset),0)
+			self.chunk_size=max(min(16384,len(self.data)-self.offset),0)
+			if (self.skip_next_status):
+				time.sleep(0.0025)
+				self.chunk_size=0
+				self.skip_next_status=False
 			if (self.offset==0xffffffff):
 				self.active=False
 		return (self.offset,self.chunk_size,self.clear_progress)
@@ -99,12 +110,14 @@ class TestBackendDeviceContextProgramUpload(object):
 		chunk_size=min(len(data),self.chunk_size)
 		self.data[self.offset:self.offset+chunk_size]=data
 		self.offset+=chunk_size
+		self.skip_next_status=True
+		self.events.append((min(self.offset/len(self.data),1.0),True))
 		if (self.offset!=len(self.data)):
 			return
 		if (LEDSignCRC(self.data).value!=self.crc):
 			self.offset=0
 		else:
-			self.foffset=0xffffffff
+			self.offset=0xffffffff
 
 
 
@@ -503,13 +516,19 @@ def test_device_storage_size():
 
 @test
 def test_device_upload_program():
-	device_config={"hardware":b"A\x00\x00\x00\x00\x00B\x00","access_mode":0x01,"hardware_data":{"A":{"data":[(0,0),(1,0),(1,1)],"width":2},"B":{"data":[(0,0),(1,0),(1,1),(2,2),(3,3)],"width":4}}}
+	device_config={"hardware":b"A\x00\x00\x00\x00\x00B\x00","access_mode":0x01,"program_upload":TestBackendDeviceContextProgramUpload(),"hardware_data":{"A":{"data":[(0,0),(1,0),(1,1)],"width":2},"B":{"data":[(0,0),(1,0),(1,1),(2,2),(3,3)],"width":4}}}
 	TestBackend(device_config=device_config)
 	device=LEDSign.open()
+	compiled_program=device.get_program().compile()
 	test.exception(lambda:device.upload_program("wrong_type"),TypeError)
-	test.exception(lambda:device.upload_program(device.get_program().compile()),LEDSignAccessError)
+	test.exception(lambda:device.upload_program(compiled_program,callback="wrong_type"),TypeError)
+	test.exception(lambda:device.upload_program(compiled_program),LEDSignAccessError)
 	device.close()
+	device_config["hardware"]=b"A\x00\x00\x00\x00\x00A\x00"
 	device_config["access_mode"]=0x02
+	TestBackend(device_config=device_config)
+	test.exception(lambda:LEDSign.open().upload_program(compiled_program),LEDSignProgramError)
+	device_config["hardware"]=b"A\x00\x00\x00\x00\x00B\x00"
 	TestBackend(device_config=device_config)
 	device=LEDSign.open()
 	@LEDSignProgram(device)
@@ -519,10 +538,20 @@ def test_device_upload_program():
 		kp("#00ff00",5)
 		af(1)
 		kp("#0000ff",duration=0.5)
-		af(1)
+		af(10)
 		end()
-	device.upload_program(program.compile())
-	print("test_device_upload_program")
+	compiled_program=program.compile()
+	device.upload_program(compiled_program)
+	test.equal(device_config["program_upload"].ctrl,compiled_program._ctrl)
+	test.equal(device_config["program_upload"].crc,compiled_program._crc)
+	test.equal(device_config["program_upload"].data,compiled_program._data)
+	test.equal(device_config["program_upload"].active,False)
+	event_list=[]
+	device.upload_program(compiled_program,callback=lambda *e:event_list.append(e))
+	test.equal(len(event_list),len(device_config["program_upload"].events))
+	for a,b in zip(event_list,device_config["program_upload"].events):
+		test.equal(a[0],b[0])
+		test.equal(a[1],b[1])
 
 
 
@@ -849,7 +878,7 @@ def test_program_exceptions():
 
 @test
 def test_program_save_and_load():
-	TestBackend(device_config={"hardware":b"A\x00\x00\x00\x00\x00B\x00","hardware_data":{"A":{"data":[(0,0),(1,0),(1,1)],"width":2},"B":{"data":[(0,0),(1,0),(1,1),(2,2),(3,3)],"width":4}}})
+	TestBackend(device_config={"hardware":b"A\x00\x00\x00\x00\x00B\x00","hardware_data":{"A":{"data":[(0,0),(1,0),(1,1),(2,2)],"width":2},"B":{"data":[(0,0),(1,0),(1,1),(2,2),(3,3)],"width":4}}})
 	device=LEDSign.open()
 	@LEDSignProgram(device)
 	def program():
@@ -859,15 +888,19 @@ def test_program_save_and_load():
 		af(1)
 		kp("#0000ff",duration=0.5)
 		af(1)
+		kp("#202020",3)
+		kp("#404040",12)
 		end()
 	program.save("build/temp.led")
 	program=LEDSignProgram(device,"build/temp.led")
 	test.equal(program.get_duration(),181/60)
 	keypoints=tuple(program.get_keypoints())
-	test.equal(len(keypoints),3)
+	test.equal(len(keypoints),5)
 	_test_keypoint(keypoints[0],0xff0000,LEDSignSelector.get_mask(hardware=device.get_hardware()),1/60,1/60)
 	_test_keypoint(keypoints[1],0x00ff00,5,1/60,61/60)
 	_test_keypoint(keypoints[2],0x0000ff,LEDSignSelector.get_mask(hardware=device.get_hardware()),30/60,121/60)
+	_test_keypoint(keypoints[3],0x202020,3,1/60,181/60)
+	_test_keypoint(keypoints[4],0x404040,12,1/60,181/60)
 	with open("build/temp.led","rb") as rf:
 		valid_saved_program_data=rf.read()
 	with open("build/temp.led","wb") as wf:
