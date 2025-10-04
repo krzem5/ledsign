@@ -354,7 +354,7 @@ class LEDSignProgramBuilder(object):
 
 		.. warning::
 
-			During program verification, each keypoint is checked to prevent invalid configurations (usually resulting from bugs in the generator code). Two types of invalid keypoint configurations are: (1) negative start time, and (2) ambiguous ordering.
+			During program verification, each keypoint is checked to prevent invalid configurations, usually resulting from bugs in the generator code. Two types of invalid keypoint configurations are: (1) negative start time, and (2) ambiguous ordering.
 
 			The first error is reported with a keypoint's start time (ie. its end time minus its duration) predates the start of the program (timestamp :python:`0.0`). The compiler is not be able generate the full extent of the animation, and thus the end result is undefined.
 
@@ -378,7 +378,7 @@ class LEDSignProgramBuilder(object):
 			raise TypeError(f"Expected 'int' or 'float', got '{duration.__class__.__name__}'")
 		if (time is None):
 			time=self.time
-		elif (isinstance(end,int) or isinstance(end,float)):
+		elif (isinstance(time,int) or isinstance(time,float)):
 			time=max(round(time*60),1)
 		else:
 			raise TypeError(f"Expected 'int' or 'float', got '{time.__class__.__name__}'")

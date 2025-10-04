@@ -815,7 +815,43 @@ def test_program_builder_command_hardware():
 
 @test
 def test_program_builder_command_keypoint():
-	print("test_program_builder_command_keypoint")
+	TestBackend(device_config={"hardware":b"A\x00\x00\x00\x00\x00\x00\x00","hardware_data":{"A":{"data":[(0,0),(1,0),(1,1)],"width":2}}})
+	device=LEDSign.open()
+	@LEDSignProgram(device)
+	def program():
+		builder=LEDSignProgramBuilder.instance()
+		test.equal(keypoint,builder.command_keypoint)
+		test.equal(kp,builder.command_keypoint)
+		test.exception(lambda:kp(12.345),TypeError)
+		test.exception(lambda:kp(0,mask="wrong_type"),TypeError)
+		test.exception(lambda:kp(0,duration="wrong_type"),TypeError)
+		test.exception(lambda:kp(0,time="wrong_type"),TypeError)
+		kp(0x2288cc)
+	keypoints=tuple(program.get_keypoints())
+	test.equal(len(keypoints),1)
+	_test_keypoint(keypoints[0],0x2288cc,7,1/60,1/60)
+	keypoints=tuple(LEDSignProgram(device)(lambda:kp("#ff0080")).get_keypoints())
+	test.equal(len(keypoints),1)
+	_test_keypoint(keypoints[0],0xff0080,7,1/60,1/60)
+	keypoints=tuple(LEDSignProgram(device)(lambda:kp("#80ff80",mask=2)).get_keypoints())
+	test.equal(len(keypoints),1)
+	_test_keypoint(keypoints[0],0x80ff80,2,1/60,1/60)
+	keypoints=tuple(LEDSignProgram(device)(lambda:kp("#8080ff",mask=0xfe)).get_keypoints())
+	test.equal(len(keypoints),1)
+	_test_keypoint(keypoints[0],0x8080ff,6,1/60,1/60)
+	keypoints=tuple(LEDSignProgram(device)(lambda:(at(3),kp("#ff8080",duration=2))).get_keypoints())
+	test.equal(len(keypoints),1)
+	_test_keypoint(keypoints[0],0xff8080,7,120/60,180/60)
+	keypoints=tuple(LEDSignProgram(device)(lambda:(at(3),kp("#ff80ff",duration=-1))).get_keypoints())
+	test.equal(len(keypoints),1)
+	_test_keypoint(keypoints[0],0xff80ff,7,1/60,180/60)
+	keypoints=tuple(LEDSignProgram(device)(lambda:(at(3),kp("#ffff80",time=5))).get_keypoints())
+	test.equal(len(keypoints),1)
+	_test_keypoint(keypoints[0],0xffff80,7,1/60,300/60)
+	keypoints=tuple(LEDSignProgram(device)(lambda:(at(3),kp("#80ffff",time=-5))).get_keypoints())
+	test.equal(len(keypoints),1)
+	_test_keypoint(keypoints[0],0x80ffff,7,1/60,1/60)
+	device.close()
 
 
 
@@ -836,7 +872,7 @@ def test_program_builder_command_end():
 
 @test
 def test_program_builder_command_rgb():
-	TestBackend(device_config={"hardware":b"A\x00\x00\x00\x00\x00\x00\x00","hardware_data":{"A":{"data":[(0,0),(1,0),(1,1)],"width":2}}})
+	TestBackend()
 	@LEDSignProgram(LEDSign.open())
 	def program():
 		builder=LEDSignProgramBuilder.instance()
@@ -864,7 +900,7 @@ def test_program_builder_command_rgb():
 
 @test
 def test_program_builder_command_hsv():
-	TestBackend(device_config={"hardware":b"A\x00\x00\x00\x00\x00\x00\x00","hardware_data":{"A":{"data":[(0,0),(1,0),(1,1)],"width":2}}})
+	TestBackend()
 	@LEDSignProgram(LEDSign.open())
 	def program():
 		builder=LEDSignProgramBuilder.instance()
