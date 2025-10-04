@@ -11,7 +11,7 @@ device=LEDSign.open()
 def program():
 	bbox=LEDSignSelector.get_bounding_box()
 	for x,y,mask in LEDSignSelector.get_pixels():
-		kp(rgb((x-bbox[0])/(bbox[2]-bbox[0])*255,(y-bbox[1])/(bbox[3]-bbox[1])*255,128),mask)
+		kp(rgb((x-bbox[0])/(bbox[2]-bbox[0]),(y-bbox[1])/(bbox[3]-bbox[1]),0.5),mask)
 	end()
 
 

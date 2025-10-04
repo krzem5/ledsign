@@ -234,7 +234,7 @@ class LEDSignProgramBuilder(object):
 	+--------------------+-------------+-------------------------------+
 	| :func:`delta_time` | :func:`dt`  | :py:func:`command_delta_time` |
 	+--------------------+-------------+-------------------------------+
-	| :func:`end`        | :func:`ed`  | :py:func:`command_end`        |
+	| :func:`end`        | ---         | :py:func:`command_end`        |
 	+--------------------+-------------+-------------------------------+
 	| :func:`hsv`        | ---         | :py:func:`command_hsv`        |
 	+--------------------+-------------+-------------------------------+
@@ -272,7 +272,7 @@ class LEDSignProgramBuilder(object):
 		"af": "after",
 		"at": "at",
 		"dt": "delta_time",
-		"ed": "end",
+		"end": "end",
 		"hsv": "hsv",
 		"hw": "hardware",
 		"kp": "keypoint",
@@ -392,7 +392,7 @@ class LEDSignProgramBuilder(object):
 
 	def command_rgb(self,r:int|float,g:int|float,b:int|float) -> int:
 		"""
-		Converts the given :python:`(r, g, b)` tuple (each element is clamped between :python:`0.0` and :python:`255.0`) into a packed 24-bit integer color. Can be used to pack individual :python:`int` or :python:`float` color channels for use with the :py:func:`command_keypoint` function.
+		Converts the given :python:`(r, g, b)` tuple (each element is clamped between :python:`0.0` and :python:`1.0`) into a packed 24-bit integer color. Can be used to pack individual :python:`int` or :python:`float` color channels for use with the :py:func:`command_keypoint` function.
 		"""
 		if (not isinstance(r,int) and not isinstance(r,float)):
 			raise TypeError(f"Expected 'int' or 'float', got '{r.__class__.__name__}'")
@@ -400,9 +400,9 @@ class LEDSignProgramBuilder(object):
 			raise TypeError(f"Expected 'int' or 'float', got '{g.__class__.__name__}'")
 		if (not isinstance(b,int) and not isinstance(b,float)):
 			raise TypeError(f"Expected 'int' or 'float', got '{b.__class__.__name__}'")
-		r=min(max(round(r),0),255)
-		g=min(max(round(g),0),255)
-		b=min(max(round(b),0),255)
+		r=min(max(round(r*255),0),255)
+		g=min(max(round(g*255),0),255)
+		b=min(max(round(b*255),0),255)
 		return (r<<16)+(g<<8)+b
 
 	def command_hsv(self,h:int|float,s:int|float,v:int|float) -> int:

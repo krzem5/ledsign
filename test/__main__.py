@@ -821,13 +821,44 @@ def test_program_builder_command_keypoint():
 
 @test
 def test_program_builder_command_end():
-	print("test_program_builder_command_end")
+	TestBackend()
+	@LEDSignProgram(LEDSign.open())
+	def program():
+		builder=LEDSignProgramBuilder.instance()
+		test.equal(end,builder.command_end)
+	test.equal(program.get_duration(),1/60)
+	program(lambda:end())
+	test.equal(program.get_duration(),1/60)
+	program(lambda:(at(4),end()))
+	test.equal(program.get_duration(),4.0)
 
 
 
 @test
 def test_program_builder_command_rgb():
-	print("test_program_builder_command_rgb")
+	TestBackend(device_config={"hardware":b"A\x00\x00\x00\x00\x00\x00\x00","hardware_data":{"A":{"data":[(0,0),(1,0),(1,1)],"width":2}}})
+	@LEDSignProgram(LEDSign.open())
+	def program():
+		builder=LEDSignProgramBuilder.instance()
+		test.equal(rgb,builder.command_rgb)
+		test.exception(lambda:rgb("wrong_type",0.0,0.0),TypeError)
+		test.exception(lambda:rgb(0.0,"wrong_type",0.0),TypeError)
+		test.exception(lambda:rgb(0.0,0.0,"wrong_type"),TypeError)
+		for r,g,b,color in [
+			(0.0,0.0,0.0,0x000000),
+			(0.5,0.5,0.5,0x808080),
+			(1.0,1.0,1.0,0xffffff),
+			(0.5,0.0,0.0,0x800000),
+			(1.0,0.0,0.0,0xff0000),
+			(0.0,0.5,0.0,0x008000),
+			(0.0,1.0,0.0,0x00ff00),
+			(0.0,0.0,0.5,0x000080),
+			(0.0,0.0,1.0,0x0000ff),
+			(0.25,0.5,0.75,0x4080bf),
+			(0.5,0.75,0.25,0x80bf40),
+			(0.75,0.25,0.5,0xbf4080)
+		]:
+			test.equal(rgb(r,g,b),color)
 
 
 
