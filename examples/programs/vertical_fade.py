@@ -16,7 +16,7 @@ def program():
 	fade_height=height*fade
 	hue_map={}
 	for i,_,mask in LEDSignSelector.get_letter_masks():
-		hue_map[mask]=i/LEDSignSelector.get_letter_count()*360
+		hue_map[mask]=i/LEDSignSelector.get_letter_count()
 	for x,y,mask in LEDSignSelector.get_pixels():
 		for letter_mask in hue_map:
 			if (letter_mask&mask):

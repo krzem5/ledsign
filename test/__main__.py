@@ -833,7 +833,28 @@ def test_program_builder_command_rgb():
 
 @test
 def test_program_builder_command_hsv():
-	print("test_program_builder_command_hsv")
+	TestBackend(device_config={"hardware":b"A\x00\x00\x00\x00\x00\x00\x00","hardware_data":{"A":{"data":[(0,0),(1,0),(1,1)],"width":2}}})
+	@LEDSignProgram(LEDSign.open())
+	def program():
+		builder=LEDSignProgramBuilder.instance()
+		test.equal(hsv,builder.command_hsv)
+		test.exception(lambda:hsv("wrong_type",0.0,0.0),TypeError)
+		test.exception(lambda:hsv(0.0,"wrong_type",0.0),TypeError)
+		test.exception(lambda:hsv(0.0,0.0,"wrong_type"),TypeError)
+		for h,s,v,color in [
+			(0/6,0.0,0.0,0x000000),
+			(0/6,0.0,0.5,0x808080),
+			(3/6,0.0,0.5,0x808080),
+			(4/6,0.0,1.0,0xffffff),
+			(0/6,1.0,1.0,0xff0000),
+			(1/6,0.5,1.0,0xffff80),
+			(2/6,1.0,0.5,0x008000),
+			(3/6,0.5,0.5,0x408080),
+			(4/6,0.5,0.1,0x0d0d1a),
+			(5/6,0.8,0.8,0xcc29cc),
+			(6/6,0.75,0.75,0xbf3030)
+		]:
+			test.equal(hsv(h,s,v),color)
 
 
 

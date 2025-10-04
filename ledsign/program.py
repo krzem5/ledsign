@@ -415,7 +415,7 @@ class LEDSignProgramBuilder(object):
 			raise TypeError(f"Expected 'int' or 'float', got '{s.__class__.__name__}'")
 		if (not isinstance(v,int) and not isinstance(v,float)):
 			raise TypeError(f"Expected 'int' or 'float', got '{v.__class__.__name__}'")
-		h=(h%360)/60
+		h=(h%1.0)*6
 		s=min(max(s,0),1)
 		v=min(max(round(v*255),0),255)
 		if (s==0):

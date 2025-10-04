@@ -10,7 +10,7 @@ device=LEDSign.open()
 @LEDSignProgram(device)
 def program():
 	for i,_,mask in LEDSignSelector.get_letter_masks():
-		kp(hsv(i/LEDSignSelector.get_letter_count()*360,1,1),mask)
+		kp(hsv(i/LEDSignSelector.get_letter_count(),1,1),mask)
 	end()
 
 

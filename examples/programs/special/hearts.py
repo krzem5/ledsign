@@ -33,8 +33,8 @@ def program():
 			if (u>=1):
 				continue
 			circle_mask=LEDSignSelector.get_circle_mask(x,y,r*u,mask)
-			kp(hsv(t/duration*360,1,(1-u)**2),circle_mask)
-			print(f"{hsv(t/duration*360,1,(1-u)**2):06x}",circle_mask)
+			kp(hsv(t/duration,1,(1-u)**2),circle_mask)
+			print(f"{hsv(t/duration,1,(1-u)**2):06x}",circle_mask)
 			mask&=~circle_mask
 		kp("#000000",mask)
 		af(dt())

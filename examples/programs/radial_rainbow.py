@@ -16,7 +16,7 @@ def program():
 		offset=math.hypot(x-cx,y-cy)/300
 		at(0)
 		while (tm()<=duration):
-			kp(hsv((tm()/duration-offset)*360,1,1),mask)
+			kp(hsv(tm()/duration-offset,1,1),mask)
 			af(dt())
 	at(duration)
 	end()
