@@ -93,6 +93,7 @@ class TestBackendDeviceContext(object):
 			"hardware": bytearray(8),
 			"program_ctrl": 0x000000,
 			"program_crc": 0x000000,
+			"program_data": bytearray(),
 			"brightness": 0x00,
 			"access_mode": 0x02,
 			"psu_current": 0x00,
@@ -110,6 +111,11 @@ class TestBackendDeviceContext(object):
 		}
 		self.handshake_state=TestBackendDeviceContext.HANDSHAKE_OPEN
 		self.extended_read_data=None
+
+	def _prepare_extended_read(self,data):
+		if (self.extended_read_data is not None):
+			TestManager.instance().fail("Extended read dropped",2)
+		self.extended_read_data=data
 
 	def _error_packet(self,expected=False):
 		if (not expected):
@@ -157,14 +163,29 @@ class TestBackendDeviceContext(object):
 		if (len(packet)!=3 or self.handshake_state!=TestBackendDeviceContext.HANDSHAKE_CONNECTED or chr(packet[2]) not in self.config["hardware_data"]):
 			return self._error_packet()
 		entry=self.config["hardware_data"][chr(packet[2])]
-		self.extended_read_data=bytearray()
+		data=bytearray()
 		for x,y in entry["data"]:
-			self.extended_read_data+=struct.pack("<HH",x*TestBackendDeviceContext.HARDWARE_SCALE,y*TestBackendDeviceContext.HARDWARE_SCALE)
+			data+=struct.pack("<HH",x*TestBackendDeviceContext.HARDWARE_SCALE,y*TestBackendDeviceContext.HARDWARE_SCALE)
+		self._prepare_extended_read(data)
 		return struct.pack("<BBHH16x",
 			TestBackendDeviceContext.PACKET_TYPE_HARDWARE_DATA_RESPONSE,
 			22,
-			len(self.extended_read_data),
+			len(data),
 			entry["width"]*TestBackendDeviceContext.HARDWARE_SCALE
+		)
+
+	def _process_program_chunk_request_packet(self,packet):
+		if (len(packet)!=10 or self.handshake_state!=TestBackendDeviceContext.HANDSHAKE_CONNECTED):
+			return self._error_packet()
+		offset,size=struct.unpack("<xxII",packet)
+		chunk_size=min(size,len(self.config["program_data"])-offset)
+		if (chunk_size!=size):
+			print("Mismatched packet request size")
+		self._prepare_extended_read(self.config["program_data"][offset:offset+chunk_size])
+		return struct.pack("<BBI",
+			TestBackendDeviceContext.PACKET_TYPE_PROGRAM_CHUNK_RESPONSE,
+			6,
+			chunk_size
 		)
 
 	def process_packet(self,packet):
@@ -176,6 +197,8 @@ class TestBackendDeviceContext(object):
 			return self._process_led_driver_status_request_packet(packet)
 		if (packet[0]==TestBackendDeviceContext.PACKET_TYPE_HARDWARE_DATA_REQUEST):
 			return self._process_hardware_data_request_packet(packet)
+		if (packet[0]==TestBackendDeviceContext.PACKET_TYPE_PROGRAM_CHUNK_REQUEST):
+			return self._process_program_chunk_request_packet(packet)
 		return self._error_packet()
 
 	def process_extended_read(self,size):
@@ -218,22 +241,22 @@ class TestBackend(object):
 
 	def close(self,handle:TestBackendDeviceContext) -> None:
 		if (handle not in self.context_list):
-			raise ValueError
+			raise ValueError("Handle was closed")
 		self.context_list.remove(handle)
 
 	def io_read_write(self,handle:TestBackendDeviceContext,packet:bytes) -> bytearray:
 		if (handle not in self.context_list):
-			raise ValueError
+			raise ValueError("Handle was closed")
 		return handle.process_packet(packet)
 
 	def io_bulk_read(self,handle:TestBackendDeviceContext,size:int) -> bytearray:
 		if (handle not in self.context_list):
-			raise ValueError
+			raise ValueError("Handle was closed")
 		return handle.process_extended_read(size)
 
 	def io_bulk_write(self,handle:TestBackendDeviceContext,data:bytearray) -> None:
 		if (handle not in self.context_list):
-			raise ValueError
+			raise ValueError("Handle was closed")
 		raise LEDSignProtocolError()
 
 
@@ -687,6 +710,7 @@ def test_program_exceptions():
 	test.exception(lambda:LEDSignProgram("wrong_type"),TypeError)
 	test.exception(lambda:LEDSignProgram(LEDSign.open(),12345),TypeError)
 	test.exception(lambda:LEDSignProgramBuilder("wrong_type"),TypeError)
+	test.exception(lambda:LEDSignProgramBuilder(LEDSignProgram(LEDSign.open())),TypeError)
 
 
 
@@ -711,6 +735,32 @@ def test_program_save_and_load():
 	_test_keypoint(keypoints[0],0xff0000,LEDSignSelector.get_mask(hardware=device.get_hardware()),1/60,1/60)
 	_test_keypoint(keypoints[1],0x00ff00,5,1/60,61/60)
 	_test_keypoint(keypoints[2],0x0000ff,LEDSignSelector.get_mask(hardware=device.get_hardware()),30/60,121/60)
+	with open("build/temp.led","rb") as rf:
+		valid_saved_program_data=rf.read()
+	with open("build/temp.led","wb") as wf:
+		wf.write(valid_saved_program_data[:4])
+	test.exception(lambda:LEDSignProgram(device,"build/temp.led"),LEDSignProgramError)
+	with open("build/temp.led","wb") as wf:
+		wf.write(valid_saved_program_data[:-1])
+	test.exception(lambda:LEDSignProgram(device,"build/temp.led"),LEDSignProgramError)
+	with open("build/temp.led","wb") as wf:
+		invalid_saved_program_data=bytearray(valid_saved_program_data)
+		invalid_saved_program_data[0]=2
+		wf.write(invalid_saved_program_data)
+	test.exception(lambda:LEDSignProgram(device,"build/temp.led"),LEDSignProgramError)
+	with open("build/temp.led","wb") as wf:
+		wf.write(valid_saved_program_data+b"\xaa\xaa\xaa\xaa")
+	test.exception(lambda:LEDSignProgram(device,"build/temp.led"),LEDSignProgramError)
+	with open("build/temp.led","wb") as wf:
+		invalid_saved_program_data=bytearray(valid_saved_program_data)
+		invalid_saved_program_data[4]^=1
+		wf.write(invalid_saved_program_data)
+	test.exception(lambda:LEDSignProgram(device,"build/temp.led"),LEDSignProgramError)
+	with open("build/temp.led","wb") as wf:
+		invalid_saved_program_data=bytearray(valid_saved_program_data)
+		invalid_saved_program_data[0]+=3
+		wf.write(invalid_saved_program_data)
+	test.exception(lambda:LEDSignProgram(device,"build/temp.led"),LEDSignProgramError)
 	device.close()
 
 
@@ -728,12 +778,6 @@ def test_program_compile():
 
 
 @test
-def test_program_duration():
-	print("test_program_duration")
-
-
-
-@test
 def test_program_keypoints():
 	TestBackend(device_config={"hardware":b"A\x00\x00\x00\x00\x00B\x00","hardware_data":{"A":{"data":[(0,0),(1,0),(1,1)],"width":2},"B":{"data":[(0,0),(1,0),(1,1),(2,2),(3,3)],"width":4}}})
 	device=LEDSign.open()
@@ -741,23 +785,79 @@ def test_program_keypoints():
 	def program():
 		kp("#ff0000")
 		af(1)
-		kp("#2eaa34",5)
+		kp("#00ff00",6)
 		af(1)
 		kp("#0000ff",duration=0.5)
 		af(1)
 		end()
+	test.exception(lambda:program.get_keypoints(mask="wrong_type"),TypeError)
 	keypoints=tuple(program.get_keypoints())
 	test.equal(len(keypoints),3)
 	_test_keypoint(keypoints[0],0xff0000,LEDSignSelector.get_mask(hardware=device.get_hardware()),1/60,1/60)
-	_test_keypoint(keypoints[1],0x2eaa34,5,1/60,61/60)
+	_test_keypoint(keypoints[1],0x00ff00,6,1/60,61/60)
 	_test_keypoint(keypoints[2],0x0000ff,LEDSignSelector.get_mask(hardware=device.get_hardware()),30/60,121/60)
+	keypoints=tuple(program.get_keypoints(mask=25))
+	test.equal(len(keypoints),2)
+	_test_keypoint(keypoints[0],0xff0000,LEDSignSelector.get_mask(hardware=device.get_hardware()),1/60,1/60)
+	_test_keypoint(keypoints[1],0x0000ff,LEDSignSelector.get_mask(hardware=device.get_hardware()),30/60,121/60)
 	device.close()
 
 
 
 @test
 def test_program_load():
-	print("test_program_load")
+	device_config={"hardware":b"A\x00\x00\x00\x00\x00B\x00","hardware_data":{"A":{"data":[(0,0),(1,0),(1,1)],"width":2},"B":{"data":[(0,0),(1,0),(1,1),(2,2),(3,3)],"width":4}}}
+	TestBackend(device_config=device_config)
+	@LEDSignProgram(LEDSign.open())
+	def program():
+		kp("#ff0000")
+		af(1)
+		kp("#00ff00",5)
+		af(1)
+		kp("#0000ff",duration=0.5)
+		af(1)
+		end()
+	compiled_program=program.compile()
+	device_config["program_ctrl"]=compiled_program._ctrl
+	device_config["program_crc"]=compiled_program._crc
+	device_config["program_data"]=compiled_program._data
+	TestBackend(device_config=device_config)
+	device=LEDSign.open()
+	program=device.get_program()
+	test.equal(program.is_unloaded(),True)
+	program.load()
+	test.equal(program.is_unloaded(),False)
+	keypoints=tuple(program.get_keypoints())
+	test.equal(len(keypoints),3)
+	_test_keypoint(keypoints[0],0xff0000,LEDSignSelector.get_mask(hardware=device.get_hardware()),1/60,1/60)
+	_test_keypoint(keypoints[1],0x00ff00,5,1/60,61/60)
+	_test_keypoint(keypoints[2],0x0000ff,LEDSignSelector.get_mask(hardware=device.get_hardware()),30/60,121/60)
+	device.close()
+	device=LEDSign.open()
+	program=device.get_program()
+	test.equal(program.is_unloaded(),True)
+	keypoints=tuple(program.get_keypoints())
+	test.equal(len(keypoints),3)
+	_test_keypoint(keypoints[0],0xff0000,LEDSignSelector.get_mask(hardware=device.get_hardware()),1/60,1/60)
+	_test_keypoint(keypoints[1],0x00ff00,5,1/60,61/60)
+	_test_keypoint(keypoints[2],0x0000ff,LEDSignSelector.get_mask(hardware=device.get_hardware()),30/60,121/60)
+	test.equal(program.is_unloaded(),False)
+	device.close()
+	device=LEDSign.open()
+	program=device.get_program()
+	device.close()
+	test.exception(program.load,LEDSignProtocolError)
+	device_config["program_ctrl"]+=3
+	TestBackend(device_config=device_config)
+	device=LEDSign.open()
+	test.exception(device.get_program().load,LEDSignProgramError)
+	device.close()
+	device_config["program_ctrl"]-=3
+	device_config["program_crc"]^=1
+	TestBackend(device_config=device_config)
+	device=LEDSign.open()
+	test.exception(device.get_program().load,LEDSignProgramError)
+	device.close()
 
 
 

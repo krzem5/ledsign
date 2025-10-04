@@ -1,4 +1,5 @@
 from collections.abc import Callable,Iterator
+from ledsign.backend import LEDSignProtocolError
 from ledsign.checksum import LEDSignCRC
 from ledsign.keypoint_list import LEDSignKeypoint,LEDSignKeypointList
 from ledsign.program_io import LEDSignCompiledProgram,LEDSignProgramParser
@@ -116,11 +117,17 @@ class LEDSignProgram(object):
 		if ((ctrl&0xff)%3 or size!=((ctrl>>8)<<2)+8 or crc!=LEDSignCRC(data).value):
 			raise LEDSignProgramError("Invalid program")
 		if (((self._hardware._pixel_count+7)>>3)!=(ctrl&0xff)//3):
-			raise LEDSignProgramError("Invalid program")
+			raise LEDSignProgramError("Program was compiled for different hardware")
 		self._duration=(ctrl>>9)//max(ctrl&0xff,1)
 		parser=LEDSignProgramParser(self,(ctrl&0xff)//3,True)
 		parser.update(data)
 		parser.terminate()
+
+	def is_unloaded(self) -> bool:
+		"""
+		Returns :python:`True` if the program is unloaded (ie. not yet fetched from the device), and :python:`False` otherwise.
+		"""
+		return self._load_parameters is not None
 
 	def get_duration(self) -> float:
 		"""
@@ -157,7 +164,7 @@ class LEDSignProgram(object):
 		load_parameters=self._load_parameters
 		self._load_parameters=None
 		device=load_parameters[0]()
-		if (device is None):
+		if (device is None or device._path is None):
 			self._has_error=True
 			raise LEDSignProtocolError("Device disconnected")
 		if ((load_parameters[1]&0xff)//3!=self._hardware._led_depth):
@@ -176,7 +183,7 @@ class LEDSignProgram(object):
 			parser.update(chunk)
 			offset+=availbale_chunk_size
 		if (received_crc.value!=load_parameters[2]):
-			self._program._keypoint_list.clear()
+			self._keypoint_list.clear()
 			self._has_error=True
 			raise LEDSignProgramError("Mismatched program checksum")
 		parser.terminate()
@@ -185,6 +192,8 @@ class LEDSignProgram(object):
 		"""
 		Iterates over all keypoints containing any pixels selected by :python:`mask`. If no mask is given, all keypoints are iterated over.
 		"""
+		if (not isinstance(mask,int)):
+			raise TypeError(f"Expected 'int', got '{mask.__class__.__name__}'")
 		self.load()
 		return self._keypoint_list.iterate(mask)
 
@@ -354,7 +363,7 @@ class LEDSignProgramBuilder(object):
 
 		.. warning::
 
-			During program verification, each keypoint is checked to prevent invalid configurations, usually resulting from bugs in the generator code. Two types of invalid keypoint configurations are: (1) negative start time, and (2) ambiguous ordering.
+			During program verification, each keypoint is checked to prevent invalid configurations, usually resulting from bugs in generator code. Two types of invalid keypoint configurations are: (1) negative start time, and (2) ambiguous ordering.
 
 			The first error is reported with a keypoint's start time (ie. its end time minus its duration) predates the start of the program (timestamp :python:`0.0`). The compiler is not be able generate the full extent of the animation, and thus the end result is undefined.
 
