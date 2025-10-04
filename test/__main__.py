@@ -1,4 +1,5 @@
 from ledsign import *
+from ledsign.checksum import LEDSignCRC
 from ledsign.protocol import LEDSignProtocol
 import random
 import struct
@@ -62,6 +63,51 @@ class TestManager(object):
 
 
 
+class TestBackendDeviceContextProgramUpload(object):
+	def __init__(self):
+		self.ctrl=None
+		self.crc=None
+		self.data=None
+		self.active=False
+		self.offset=None
+		self.chunk_size=None
+		self.clear_progress=None
+
+	def setup(self,ctrl,crc):
+		self.ctrl=ctrl
+		self.crc=crc
+		self.data=bytearray((ctrl>>8)<<2)
+		self.active=True
+		self.offset=0
+		self.chunk_size=0
+		self.clear_progress=0
+
+	def get_status(self):
+		self.chunk_size=0
+		if (self.clear_progress<len(self.data)):
+			time.sleep(0.01)
+			self.clear_progress+=65536
+		else:
+			self.chunk_size=max(min(8192,len(self.data)-self.offset),0)
+			if (self.offset==0xffffffff):
+				self.active=False
+		return (self.offset,self.chunk_size,self.clear_progress)
+
+	def process_write(self,data):
+		if (len(data)!=self.chunk_size):
+			print("Mismatched program chunk size")
+		chunk_size=min(len(data),self.chunk_size)
+		self.data[self.offset:self.offset+chunk_size]=data
+		self.offset+=chunk_size
+		if (self.offset!=len(self.data)):
+			return
+		if (LEDSignCRC(self.data).value!=self.crc):
+			self.offset=0
+		else:
+			self.foffset=0xffffffff
+
+
+
 class TestBackendDeviceContext(object):
 	PACKET_TYPE_NONE=0x00
 	PACKET_TYPE_HOST_INFO=0x90
@@ -94,6 +140,7 @@ class TestBackendDeviceContext(object):
 			"program_ctrl": 0x000000,
 			"program_crc": 0x000000,
 			"program_data": bytearray(),
+			"program_upload": TestBackendDeviceContextProgramUpload(),
 			"brightness": 0x00,
 			"access_mode": 0x02,
 			"psu_current": 0x00,
@@ -111,11 +158,17 @@ class TestBackendDeviceContext(object):
 		}
 		self.handshake_state=TestBackendDeviceContext.HANDSHAKE_OPEN
 		self.extended_read_data=None
+		self.extended_write_size=0
 
 	def _prepare_extended_read(self,data):
 		if (self.extended_read_data is not None):
 			TestManager.instance().fail("Extended read dropped",2)
 		self.extended_read_data=data
+
+	def _prepare_extended_write(self,size):
+		if (self.extended_write_size):
+			TestManager.instance().fail("Extended write dropped",2)
+		self.extended_write_size=size
 
 	def _error_packet(self,expected=False):
 		if (not expected):
@@ -188,6 +241,30 @@ class TestBackendDeviceContext(object):
 			chunk_size
 		)
 
+	def _process_program_setup_packet(self,packet):
+		if (len(packet)!=10 or self.handshake_state!=TestBackendDeviceContext.HANDSHAKE_CONNECTED or self.config["access_mode"]!=0x02):
+			return self._error_packet()
+		ctrl,crc=struct.unpack("<xxII",packet)
+		self.config["program_upload"].setup(ctrl,crc)
+		return struct.pack("<BBIII",
+			TestBackendDeviceContext.PACKET_TYPE_PROGRAM_CHUNK_REQUEST_DEVICE,
+			14,
+			0,
+			0,
+			0
+		)
+
+	def _process_program_upload_status_packet(self,packet):
+		if (len(packet)!=2 or self.handshake_state!=TestBackendDeviceContext.HANDSHAKE_CONNECTED or self.config["access_mode"]!=0x02 or not self.config["program_upload"].active):
+			return self._error_packet()
+		status=self.config["program_upload"].get_status()
+		self._prepare_extended_write(status[1])
+		return struct.pack("<BBIII",
+			TestBackendDeviceContext.PACKET_TYPE_PROGRAM_CHUNK_REQUEST_DEVICE,
+			14,
+			*status
+		)
+
 	def process_packet(self,packet):
 		if (len(packet)<2 or len(packet)!=packet[1]):
 			return self._error_packet()
@@ -199,6 +276,10 @@ class TestBackendDeviceContext(object):
 			return self._process_hardware_data_request_packet(packet)
 		if (packet[0]==TestBackendDeviceContext.PACKET_TYPE_PROGRAM_CHUNK_REQUEST):
 			return self._process_program_chunk_request_packet(packet)
+		if (packet[0]==TestBackendDeviceContext.PACKET_TYPE_PROGRAM_SETUP):
+			return self._process_program_setup_packet(packet)
+		if (packet[0]==TestBackendDeviceContext.PACKET_TYPE_PROGRAM_UPLOAD_STATUS):
+			return self._process_program_upload_status_packet(packet)
 		return self._error_packet()
 
 	def process_extended_read(self,size):
@@ -208,6 +289,13 @@ class TestBackendDeviceContext(object):
 		out=bytearray(self.extended_read_data)
 		self.extended_read_data=None
 		return out
+
+	def process_extended_write(self,data):
+		if (not self.extended_write_size or len(data)!=self.extended_write_size):
+			TestManager.instance().fail("Invalid extended write")
+			return
+		self.config["program_upload"].process_write(data)
+		self.extended_write_size=0
 
 
 
@@ -257,7 +345,7 @@ class TestBackend(object):
 	def io_bulk_write(self,handle:TestBackendDeviceContext,data:bytearray) -> None:
 		if (handle not in self.context_list):
 			raise ValueError("Handle was closed")
-		raise LEDSignProtocolError()
+		handle.process_extended_write(data)
 
 
 
@@ -414,12 +502,27 @@ def test_device_storage_size():
 
 
 @test
-def test_device_program_upload():
-	TestBackend(device_config={"access_mode":0x01})
+def test_device_upload_program():
+	device_config={"hardware":b"A\x00\x00\x00\x00\x00B\x00","access_mode":0x01,"hardware_data":{"A":{"data":[(0,0),(1,0),(1,1)],"width":2},"B":{"data":[(0,0),(1,0),(1,1),(2,2),(3,3)],"width":4}}}
+	TestBackend(device_config=device_config)
 	device=LEDSign.open()
 	test.exception(lambda:device.upload_program("wrong_type"),TypeError)
 	test.exception(lambda:device.upload_program(device.get_program().compile()),LEDSignAccessError)
 	device.close()
+	device_config["access_mode"]=0x02
+	TestBackend(device_config=device_config)
+	device=LEDSign.open()
+	@LEDSignProgram(device)
+	def program():
+		kp("#ff0000")
+		af(1)
+		kp("#00ff00",5)
+		af(1)
+		kp("#0000ff",duration=0.5)
+		af(1)
+		end()
+	device.upload_program(program.compile())
+	print("test_device_upload_program")
 
 
 
@@ -479,6 +582,36 @@ def test_device_driver_pause():
 	test.equal(LEDSign.open().is_driver_paused(),True)
 	TestBackend(device_config={"running":True})
 	test.equal(LEDSign.open().is_driver_paused(),False)
+
+
+
+@test
+def test_device_driver_program_time():
+	device_config={"hardware":b"A\x00\x00\x00\x00\x00B\x00","hardware_data":{"A":{"data":[(0,0),(1,0),(1,1)],"width":2},"B":{"data":[(0,0),(1,0),(1,1),(2,2),(3,3)],"width":4}}}
+	TestBackend(device_config=device_config)
+	@LEDSignProgram(LEDSign.open())
+	def program():
+		kp("#ff0000")
+		af(1)
+		kp("#00ff00",5)
+		af(1)
+		kp("#0000ff",duration=0.5)
+		af(1)
+		end()
+	compiled_program=program.compile()
+	device_config["program_ctrl"]=compiled_program._ctrl
+	device_config["program_crc"]=compiled_program._crc
+	device_config["program_data"]=compiled_program._data
+	device_config["driver"]={"temperature":0,"load":0,"program_offset":0,"current_usage":0}
+	TestBackend(device_config=device_config)
+	device=LEDSign.open()
+	device.set_driver_status_reload_time(-1)
+	test.equal(device.get_driver_program_time(),0.0)
+	device_config["driver"]["program_offset"]=(compiled_program._ctrl&0xff)<<1
+	test.equal(device.get_driver_program_time(),1/60)
+	device_config["driver"]["program_offset"]=(compiled_program._ctrl>>8)-device_config["driver"]["program_offset"]
+	test.equal(device.get_driver_program_time(),180/60)
+	device.close()
 
 
 
