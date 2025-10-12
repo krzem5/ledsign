@@ -9,13 +9,16 @@ device=LEDSign.open()
 
 @LEDSignProgram(device)
 def program():
-	cx,cy=LEDSignSelector.get_center()
-	cx*=0.4
-	for x,y,mask in LEDSignSelector.get_pixels():
-		if (min(abs(x-cx),abs(y-cy))<10):
-			kp("#ffffff",mask)
+	columns={}
+	for x,y,_ in LEDSignSelector.get_pixels():
+		if (x not in columns):
+			columns[x]=1
 		else:
-			kp("#c8102e",mask)
+			columns[x]+=1
+	cx=sorted(columns.items(),key=lambda e:(-e[1],e[0]))[1][0]
+	cy=LEDSignSelector.get_center()[1]
+	for x,y,mask in LEDSignSelector.get_pixels():
+		kp(("#ffffff" if x==cx or abs(y-cy)<10 else "#c8102e"),mask)
 	end()
 
 
