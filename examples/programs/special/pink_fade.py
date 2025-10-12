@@ -12,7 +12,7 @@ device=LEDSign.open()
 def program():
 	cx,cy=LEDSignSelector.get_center()
 	cy=0
-	duration=4
+	duration=8
 	for x,y,mask in LEDSignSelector.get_pixels():
 		offset=math.hypot(x-cx,y-cy)/200
 		at(0)
