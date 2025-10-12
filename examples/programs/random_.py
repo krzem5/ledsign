@@ -14,11 +14,11 @@ def program():
 	steps=10
 	for x,y,mask in LEDSignSelector.get_pixels():
 		at(0)
-		hue=random.randint(0,360)
+		hue=random.random()
 		for i in range(0,steps):
 			kp(hsv(hue,1,1),mask)
 			af(duration)
-			hue+=random.randint(30,330)
+			hue+=random.randint(30,330)/360
 	end()
 
 
