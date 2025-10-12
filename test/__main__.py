@@ -1244,6 +1244,28 @@ def test_program_builder_command_hsv():
 
 
 @test
+def test_program_builder_command_cross_fade():
+	TestBackend()
+	@LEDSignProgram(LEDSign.open())
+	def program():
+		builder=LEDSignProgramBuilder.instance()
+		test.equal(cross_fade,builder.command_cross_fade)
+		test.equal(cf,builder.command_cross_fade)
+		test.exception(lambda:cf(123.45,0,0.0),TypeError)
+		test.exception(lambda:cf(0xff0000,123.45,0.0),TypeError)
+		test.exception(lambda:cf(0xff0000,0x00ff00,"wrong_type"),TypeError)
+		for src,dst,t,color in [
+			(0xff0000,0x00ff00,0,0xff0000),
+			(0xff0000,0x00ff00,1,0x00ff00),
+			(0xff0000,0x00ff00,0.5,0x808000),
+			(0x000000,0x0000ff,0.25,0x000040),
+			(0x000000,0x0000ff,0.75,0x0000bf),
+		]:
+			test.equal(cf(src,dst,t),color)
+
+
+
+@test
 def test_program_builder_instance():
 	TestBackend()
 	test.equal(LEDSignProgramBuilder.instance(),None)
