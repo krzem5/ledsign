@@ -241,7 +241,7 @@ class LEDSignProgramBuilder(object):
 	"""
 	The :py:class:`LEDSignProgramBuilder` class maintains context needed for dynamic program generation. It cannot be created directly; instead it is globally available via :py:func:`LEDSignProgramBuilder.instance` within the stack frames of a decorated :py:class:`LEDSignProgram` function (or function called passed to :py:func:`LEDSignProgram.__call__`).
 
-	For convenience reasons, all program builder commands are made available in the program function's global scope, with shorthand aliases for longer ones. The following commands and shortcuts injected into the global scope:
+	For convenience reasons, all program builder commands are made available in the program function's global scope, with shorthand aliases for longer ones. The following commands and shortcuts are injected into the global scope:
 
 	+--------------------+-------------+-------------------------------+
 	| Command            | Shortcut    | Builder method                |
@@ -465,7 +465,7 @@ class LEDSignProgramBuilder(object):
 
 	def command_cross_fade(self,src:int|str,dst:int|str,t:int|float) -> int:
 		"""
-		Computes the cross-fade (linearly interpolated) between color :python:`src` and :python:`dst`, at time :python:`t` (normalized between :python:`0.0` and :python:`1.0`). Both integer (:code:`0xrrggbb`) and HTML (:python:`"#rrggbb"`) colors are supported. For other color formats, convert their respective arguments using :py:func:`command_rgb` or :py:func:`command_hsv`.
+		Computes the cross-fade (linearly interpolated) between colors :python:`src` and :python:`dst`, at time :python:`t` (normalized between :python:`0.0` and :python:`1.0`). Both integer (:code:`0xrrggbb`) and HTML (:python:`"#rrggbb"`) colors are supported. For other color formats, convert their respective arguments using :py:func:`command_rgb` or :py:func:`command_hsv`.
 		"""
 		src=self._parse_color(src)
 		dst=self._parse_color(dst)
