@@ -250,6 +250,8 @@ class LEDSignProgramBuilder(object):
 	+--------------------+-------------+-------------------------------+
 	| :func:`at`         | ---         | :py:func:`command_at`         |
 	+--------------------+-------------+-------------------------------+
+	| :func:`cross_fade` | :func:`cf`  | :py:func:`command_cross_fade` |
+	+--------------------+-------------+-------------------------------+
 	| :func:`delta_time` | :func:`dt`  | :py:func:`command_delta_time` |
 	+--------------------+-------------+-------------------------------+
 	| :func:`end`        | ---         | :py:func:`command_end`        |
@@ -289,6 +291,7 @@ class LEDSignProgramBuilder(object):
 	COMMANDS={
 		"af": "after",
 		"at": "at",
+		"cf": "cross_fade",
 		"dt": "delta_time",
 		"end": "end",
 		"hsv": "hsv",
@@ -323,6 +326,15 @@ class LEDSignProgramBuilder(object):
 			yield (k,func)
 			if (k!=v):
 				yield (v,func)
+
+	def _parse_color(self,rgb:int|str) -> int:
+		if (isinstance(rgb,int)):
+			rgb&=0xffffff
+		elif (isinstance(rgb,str) and len(rgb)==7 and rgb[0]=="#"):
+			rgb=int(rgb[1:7],16)
+		else:
+			raise TypeError(f"Expected 'int' or 'hex-color', got '{rgb.__class__.__name__}'")
+		return rgb
 
 	def command_at(self,time:int|float) -> float:
 		"""
@@ -380,12 +392,7 @@ class LEDSignProgramBuilder(object):
 
 			However, for increased performance, these error-checking functions can be postponed or disabled altogether by setting the :python:`bypass_errors` flag in relevant :py:class:`LEDSignProgram` functions.
 		"""
-		if (isinstance(rgb,int)):
-			rgb&=0xffffff
-		elif (isinstance(rgb,str) and len(rgb)==7 and rgb[0]=="#"):
-			rgb=int(rgb[1:7],16)
-		else:
-			raise TypeError(f"Expected 'int' or 'hex-color', got '{rgb.__class__.__name__}'")
+		rgb=self._parse_color(rgb)
 		if (not isinstance(mask,int)):
 			raise TypeError(f"Expected 'int', got '{mask.__class__.__name__}'")
 		if (duration is None):
@@ -455,6 +462,20 @@ class LEDSignProgramBuilder(object):
 		if (i==4):
 			return (t<<16)+(p<<8)+v
 		return (v<<16)+(p<<8)+q
+
+	def command_cross_fade(self,src:int|str,dst:int|str,t:int|float) -> int:
+		"""
+		Computes the cross-fade (linearly interpolated) between color :python:`src` and :python:`dst`, at time :python:`t` (normalized between :python:`0.0` and :python:`1.0`). Both integer (:code:`0xrrggbb`) and HTML (:python:`"#rrggbb"`) colors are supported. For other color formats, convert their respective arguments using :py:func:`command_rgb` or :py:func:`command_hsv`.
+		"""
+		src=self._parse_color(src)
+		dst=self._parse_color(dst)
+		if (not isinstance(t,int) and not isinstance(t,float)):
+			raise TypeError(f"Expected 'int' or 'float', got '{t.__class__.__name__}'")
+		t=min(max(t,0),1)
+		cr=min(max(round(((src>>16)&0xff)+t*(((dst>>16)&0xff)-((src>>16)&0xff))),0),255)
+		cg=min(max(round(((src>>8)&0xff)+t*(((dst>>8)&0xff)-((src>>8)&0xff))),0),255)
+		cb=min(max(round((src&0xff)+t*((dst&0xff)-(src&0xff))),0),255)
+		return (cr<<16)+(cg<<8)+cb
 
 	@staticmethod
 	def instance() -> Union["LEDSignProgramBuilder",None]:

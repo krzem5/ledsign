@@ -10,14 +10,13 @@ device=LEDSign.open()
 
 @LEDSignProgram(device)
 def program():
-	cx,cy=LEDSignSelector.get_center()
-	cy=0
-	duration=8
+	colors=[0xdc8add,0xe2227c,0xeb16f0,0x914da9]
+	duration=4
 	for x,y,mask in LEDSignSelector.get_pixels():
-		offset=math.hypot(x-cx,y-cy)/200
 		at(0)
 		while (tm()<=duration):
-			kp(hsv(1+(math.cos(2*math.pi*(tm()/duration-offset))*0.5-0.5)*0.2,1,1),mask)
+			v=(x-y)/50-tm()/duration*len(colors)+100
+			kp(cf(colors[int(v)%len(colors)],colors[(int(v)+1)%len(colors)],v%1),mask)
 			af(dt())
 	at(duration)
 	end()
