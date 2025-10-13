@@ -1,6 +1,7 @@
 import sys;sys.path.insert(0,"../../..") # Use local ledsign module
 from ledsign import LEDSign,LEDSignProgram,LEDSignSelector
 import math
+import random
 
 
 
@@ -10,6 +11,10 @@ device=LEDSign.open()
 
 @LEDSignProgram(device)
 def program():
+	colors=["#ff0000","#ff8800","#ffff00","#00ff00","#2266ff","#bb00ff"]
+	blink_count=5
+	blink_max_duration=0.2
+	duration=20
 	lines=[]
 	dx=0
 	dy=0
@@ -32,8 +37,31 @@ def program():
 			dy=y-py
 			px=x
 			py=y
+	color_weights=[(LEDSignSelector.get_mask().bit_count()+len(colors)-1)//len(colors) for _ in range(0,len(colors))]
+	prev_color_index=0
+	blinking_lines=random.sample(range(0,len(lines)),blink_count)
 	for i,mask in enumerate(lines):
-		kp(hsv(i/len(lines),1,1),mask)
+		weight_sum=sum(color_weights)-color_weights[prev_color_index]-1
+		if (not weight_sum):
+			prev_color_index=-1
+			weight_sum+=color_weights[prev_color_index]
+		j=random.randint(0,weight_sum)
+		for k in range(0,len(colors)):
+			if (k==prev_color_index):
+				continue
+			j-=color_weights[k]
+			if (j<0):
+				break
+		prev_color_index=k
+		color_weights[prev_color_index]=max(color_weights[prev_color_index]-mask.bit_count(),0)
+		at(0)
+		kp(colors[prev_color_index],mask)
+		if (i in blinking_lines):
+			at(random.random()*(duration-2*blink_max_duration)+blink_max_duration)
+			kp("#000000",mask)
+			af((random.random()+1)/2*blink_max_duration)
+			kp(colors[prev_color_index],mask)
+	at(duration)
 	end()
 
 

@@ -18,7 +18,7 @@ def program():
 		for i in range(0,steps):
 			kp(hsv(hue,1,1),mask)
 			af(duration)
-			hue+=random.randint(30,330)/360
+			hue+=random.random()*5/6+1/12
 	end()
 
 
