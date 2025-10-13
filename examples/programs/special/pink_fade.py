@@ -9,7 +9,7 @@ device=LEDSign.open()
 
 @LEDSignProgram(device)
 def program():
-	colors=[0xdc8add,0xe2227c,0xeb16f0,0x914da9]
+	colors=["#dc8add","#e2227c","#eb16f0","#914da9"]
 	duration=4
 	for x,y,mask in LEDSignSelector.get_pixels():
 		at(0)
