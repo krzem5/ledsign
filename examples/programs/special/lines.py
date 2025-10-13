@@ -12,9 +12,9 @@ device=LEDSign.open()
 @LEDSignProgram(device)
 def program():
 	colors=["#ff0000","#ff8800","#ffff00","#00ff00","#2266ff","#bb00ff"]
-	blink_count=5
+	blink_count=8
 	blink_max_duration=0.2
-	duration=20
+	duration=60
 	lines=[]
 	dx=0
 	dy=0
