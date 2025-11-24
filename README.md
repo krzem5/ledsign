@@ -2,7 +2,7 @@
 
 ## Installation
 
-`ledsign` is available for download via PyPI. It can be install with `pip`:
+`ledsign` is available for download via PyPI. It can be installed with `pip`:
 
 ```
 pip install ledsign
