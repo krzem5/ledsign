@@ -12,4 +12,4 @@ The :code:`ledsign` is available for easy download via PyPI. It can be installed
 
 	$ pip install ledsign
 
-Alternatively, development versions can be downloaded directly from the `GitHub repository <https://github.com/krzem5/ledsign>`_.
+Alternatively, development versions can be downloaded directly from the `GitHub repository <https://github.com/krzem5/ledsign>`_:
