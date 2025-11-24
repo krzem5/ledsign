@@ -5,5 +5,4 @@ Contents
    :maxdepth: 3
 
    introduction
-   setup
    reference
