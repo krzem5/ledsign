@@ -1,18 +1,32 @@
 # LED Sign
 
+This `ledsign` module allows the direct control and programming of the LED Sign series of devices using Python 3, or through a dedicated CLI interface. This module however does **not** allow for hardware-level configuration of the device, as any such modifications must be done through the dedicated UI interface.
+
+The documentation is hosted on ReadTheDocs, accessible through this [link](https://ledsign.readthedocs.io/en/latest/).
+
 ## Installation
 
-`ledsign` is available for download via PyPI. It can be installed with `pip`:
+The `ledsign` is available for easy download via PyPI. It can be installed with :code:`pip`:
 
 ```
-pip install ledsign
+$ pip install ledsign
 ```
 
-## Usage
 
-The package also features a command line interface, which supports the most common operations:
+Alternatively, development versions can be installed directly from the [GitHub repository](https://github.com/krzem5/ledsign):
+
 ```
-$ python -m ledsign
+$ git clone https://github.com/krzem5/ledsign
+$ cd ledsign
+$ pip install -e .
+```
+
+## CLI Interface
+
+Outside of the programmatic interface outlined in the Documentation, the `ledsign` module also features a command-line interface, accessible through the Python executable:
+
+```
+$ python -m ledsign -h
 Usage: ledsign [options]
 
 Options:
