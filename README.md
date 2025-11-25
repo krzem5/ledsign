@@ -6,7 +6,7 @@ The documentation is hosted on ReadTheDocs, accessible through this [link](https
 
 ## Installation
 
-The `ledsign` is available for easy download via PyPI. It can be installed with :code:`pip`:
+The `ledsign` is available for easy download via PyPI. It can be installed with `pip`:
 
 ```
 $ pip install ledsign
