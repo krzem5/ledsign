@@ -4,7 +4,7 @@ import struct
 
 
 
-__all__=["LEDSignProtocolError","LEDSignProtocolBackendWindows","LEDSignProtocolBackendLinux"]
+__all__=["LEDSignProtocolBackendWindows","LEDSignProtocolBackendLinux"]
 
 
 
@@ -91,22 +91,22 @@ class LEDSignProtocolBackendWindows(object):
 		self.WinUsb_Free(handles[1])
 		self.CloseHandle(handles[0])
 
-	def transfer_ctrl(self,handle:int,type:int,value:int,index:int,length:int) -> None|bytearray:
-		buffer=(ctypes.c_uint8*length)()
+	def transfer_ctrl(self,handles:tuple[int,int,int],type:int,value:int,index:int,length:int) -> None|bytearray:
+		buffer=(ctypes.wintypes.CHAR*length)()
 		transferred=ctypes.c_ulong(0)
-		if (not self.WinUsb_ControlTransfer(winusb_handle.value,0xc0|(type<<8)|(value<<16)|(index<<32)|(length<<48),buffer,length,ctypes.byref(transferred),0)):
+		if (not self.WinUsb_ControlTransfer(handles[1],0xc0|(type<<8)|(value<<16)|(index<<32)|(length<<48),buffer,length,ctypes.byref(transferred),0)):
 			return None
 		return bytearray(buffer)[:length]
 
-	def transfer_bulk_out(self,handle:int,endpoint:int,data:bytes) -> bool:
+	def transfer_bulk_out(self,handles:tuple[int,int,int],endpoint:int,data:bytes) -> bool:
 		data=bytearray(data)
 		transferred=ctypes.c_ulong(0)
-		return self.WinUsb_WritePipe(handles[2],endpoint&0x7f,(ctypes.c_char*len(data)).from_buffer(data),len(data),ctypes.byref(transferred),0) and transferred.value==len(data)
+		return self.WinUsb_WritePipe(handles[1+(endpoint>3)],endpoint&0x7f,(ctypes.c_char*len(data)).from_buffer(data),len(data),ctypes.byref(transferred),0) and transferred.value==len(data)
 
-	def transfer_bulk_in(self,handle:int,endpoint:int,length:int) -> None|bytearray:
-		out=(ctypes.c_char*size)()
+	def transfer_bulk_in(self,handles:tuple[int,int,int],endpoint:int,length:int) -> None|bytearray:
+		out=(ctypes.c_char*length)()
 		transferred=ctypes.c_ulong(0)
-		return (None if not self.WinUsb_ReadPipe(handles[2],0x85,out,size,ctypes.byref(transferred),0) else bytearray(out)[:transferred.value])
+		return (None if not self.WinUsb_ReadPipe(handles[1+(endpoint>3)],(endpoint&0x7f)|0x80,out,length,ctypes.byref(transferred),0) else bytearray(out)[:transferred.value])
 
 
 
