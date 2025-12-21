@@ -19,7 +19,7 @@ def _upload_callback(progress:float,is_upload:bool) -> None:
 
 
 def main() -> None:
-	parser=optparse.OptionParser(prog="ledsign",version="%prog v0.6.0")
+	parser=optparse.OptionParser(prog="ledsign",version="%prog v0.8.0")
 	parser.add_option("-d","--device",metavar="DEVICE_PATH|DEVICE_INDEX",dest="device_path",help="open device at DEVICE_PATH, or the device at index DEVICE_INDEX (leave empty to use default device path)")
 	parser.add_option("-e","--enumerate",action="store_true",dest="enumerate",help="enumerate all available devices")
 	parser.add_option("-x","--enumerate-only",action="store_true",dest="enumerate_only",help="enumerate all available devices and exit (implies --enumerate)")
