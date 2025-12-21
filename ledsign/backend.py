@@ -163,6 +163,30 @@ class LEDSignProtocolBackendLinux(object):
 			out.append(f"/dev/bus/usb/{busnum:03d}/{devnum:03d}")
 		return out
 
+	def _open_raw(self,path:str) -> int:
+		handle=os.open(path,os.O_RDWR)
+		if (self.ioctl(handle,LEDSignProtocolBackendLinux.USBDEVFS_CLAIMINTERFACE,struct.pack("<I",0))<0):
+			raise LEDSignDeviceInUseError("Device already in use")
+		if (self.ioctl(handle,LEDSignProtocolBackendLinux.USBDEVFS_CLAIMINTERFACE,struct.pack("<I",1))<0):
+			raise LEDSignDeviceInUseError("Device already in use")
+		return handle
+
+	def transfer_ctrl(self,handle:int,type:int,value:int,index:int,length:int) -> None|bytearray:
+		buffer=(ctypes.c_uint8*length)()
+		if (self.ioctl(handle,LEDSignProtocolBackendLinux.USBDEVFS_CONTROL,struct.pack("<BBHHHI4xQ",0xc0,type,value,index,length,3000,ctypes.addressof(buffer)))!=length):
+			return None
+		return bytearray(buffer)[:length]
+
+	def transfer_bulk_out(self,handle:int,endpoint:int,data:bytes) -> bool:
+		data=bytearray(data)
+		print(data,len(data))
+		return self.ioctl(handle,LEDSignProtocolBackendLinux.USBDEVFS_BULK,struct.pack("<III4xQ",endpoint&0x7f,len(data),3000,ctypes.addressof((ctypes.c_uint8*len(data)).from_buffer(data))))==len(data)
+
+	def transfer_bulk_in(self,handle:int,endpoint:int,length:int) -> None|bytearray:
+		out=(ctypes.c_uint8*length)()
+		ret=self.ioctl(handle,LEDSignProtocolBackendLinux.USBDEVFS_BULK,struct.pack("<III4xQ",(endpoint&0x7f)|0x80,length,3000,ctypes.addressof(out)))
+		return (None if ret<0 else bytearray(out)[:ret])
+
 	def open(self,path:str) -> int:
 		handle=os.open(path,os.O_RDWR)
 		if (self.ioctl(handle,LEDSignProtocolBackendLinux.USBDEVFS_CLAIMINTERFACE,struct.pack("<I",1))<0):
