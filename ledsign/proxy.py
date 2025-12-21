@@ -8,7 +8,21 @@ import threading
 
 
 
-__all__=["LEDSignProxyServer","LEDSignBackendProxy"]
+__all__=["LEDSignProxyServer","LEDSignBackendProxy","LEDSignProxyError","LEDSignProtocolError"]
+
+
+
+class LEDSignProxyError(Exception):
+	"""
+	Raised during any proxy-related exception.
+	"""
+
+
+
+class LEDSignProtocolError(Exception):
+	"""
+	Raised during any encountered protocol error.
+	"""
 
 
 
@@ -262,7 +276,7 @@ class LEDSignBackendProxy(object):
 			try:
 				self._client_socket.connect(("127.0.0.1",LEDSignProxyServer.PROXY_PORT))
 			except ConnectionRefusedError:
-				raise LEDSignProtocolError("Unable to connect to proxy server, run 'ledsign -z' to start one")
+				raise LEDSignProxyError("Unable to connect to proxy server, run 'ledsign -z' to start one")
 			self._client_socket.sendall(b"\xffraw\xff")
 			self._client_socket.recv(5)
 		self._client_socket.sendall(data)

@@ -1,9 +1,9 @@
 from collections.abc import Callable,Iterator
-from ledsign.backend import LEDSignProtocolError
 from ledsign.checksum import LEDSignCRC
 from ledsign.keypoint_list import LEDSignKeypoint,LEDSignKeypointList
 from ledsign.program_io import LEDSignCompiledProgram,LEDSignProgramParser
 from ledsign.protocol import LEDSignProtocol
+from ledsign.proxy import LEDSignProtocolError
 from typing import Union
 import ledsign.device
 import os

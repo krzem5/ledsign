@@ -4,21 +4,7 @@ import struct
 
 
 
-__all__=["LEDSignProtocolError","LEDSignDeviceInUseError","LEDSignProtocolBackendWindows","LEDSignProtocolBackendLinux"]
-
-
-
-class LEDSignProtocolError(Exception):
-	"""
-	Raised during any encountered protocol error.
-	"""
-
-
-
-class LEDSignDeviceInUseError(Exception):
-	"""
-	Raised when a device path supplied to :py:func:`LEDSign.open` was already in use by a different program.
-	"""
+__all__=["LEDSignProtocolError","LEDSignProtocolBackendWindows","LEDSignProtocolBackendLinux"]
 
 
 

@@ -1,7 +1,5 @@
-from ledsign.backend import LEDSignProtocolError,LEDSignProtocolBackendWindows,LEDSignProtocolBackendLinux
-from ledsign.proxy import LEDSignBackendProxy
+from ledsign.proxy import LEDSignBackendProxy,LEDSignProtocolError
 import struct
-import sys
 
 
 
@@ -49,7 +47,7 @@ class LEDSignProtocol(object):
 		PACKET_TYPE_HARDWARE_DATA_RESPONSE: "<BBHH16x"
 	}
 
-	_backend=LEDSignBackendProxy()#(LEDSignProtocolBackendWindows if sys.platform=="win32" else LEDSignProtocolBackendLinux)()
+	_backend=LEDSignBackendProxy()
 
 	@staticmethod
 	def enumerate() -> list[str]:
