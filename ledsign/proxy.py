@@ -114,10 +114,7 @@ class LEDSignProxyServer(object):
 	def _remove_handle(self,wrapper):
 		del self._device_handles_by_id[wrapper.id_]
 		del self._device_handles_by_file_path[wrapper.file_path]
-		try:
-			self._backend.close(wrapper)
-		except:
-			pass
+		self._backend.close(wrapper.handle)
 
 	def _thread(self):
 		while (True):
