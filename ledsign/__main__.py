@@ -1,5 +1,6 @@
 from ledsign.device import LEDSign
 from ledsign.program import LEDSignProgram
+from ledsign.proxy import LEDSignProxyServer
 import optparse
 
 
@@ -27,7 +28,12 @@ def main() -> None:
 	parser.add_option("-p","--print-driver",action="store_true",dest="print_driver",help="print driver stats")
 	parser.add_option("-s","--save",metavar="PROGRAM",dest="save_program",help="save current program into PROGRAM")
 	parser.add_option("-u","--upload",metavar="PROGRAM",dest="upload_program",help="upload file PROGRAM to the device (requires read-write mode)")
+	parser.add_option("-z","--start-proxy-server",action="store_true",help="start a proxy server (required to communicate with the device)")
 	options,args=parser.parse_args()
+	if (options.start_proxy_server):
+		LEDSignProxyServer()
+		input(f"Proxy server running on port {LEDSignProxyServer.PROXY_PORT}, hit 'Enter' to stop\n")
+		return
 	device_path=None
 	if (not options.enumerate_only):
 		if (options.device_path is None):

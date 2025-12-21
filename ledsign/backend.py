@@ -163,13 +163,9 @@ class LEDSignProtocolBackendLinux(object):
 			out.append(f"/dev/bus/usb/{busnum:03d}/{devnum:03d}")
 		return out
 
-	def _open_raw(self,path:str) -> int:
+	def open(self,path:str) -> int:
 		handle=os.open(path,os.O_RDWR)
-		if (self.ioctl(handle,LEDSignProtocolBackendLinux.USBDEVFS_CLAIMINTERFACE,struct.pack("<I",0))<0):
-			raise LEDSignDeviceInUseError("Device already in use")
-		if (self.ioctl(handle,LEDSignProtocolBackendLinux.USBDEVFS_CLAIMINTERFACE,struct.pack("<I",1))<0):
-			raise LEDSignDeviceInUseError("Device already in use")
-		return handle
+		return (None if self.ioctl(handle,LEDSignProtocolBackendLinux.USBDEVFS_CLAIMINTERFACE,struct.pack("<I",0))<0 or self.ioctl(handle,LEDSignProtocolBackendLinux.USBDEVFS_CLAIMINTERFACE,struct.pack("<I",1))<0 else handle)
 
 	def transfer_ctrl(self,handle:int,type:int,value:int,index:int,length:int) -> None|bytearray:
 		buffer=(ctypes.c_uint8*length)()
@@ -179,44 +175,9 @@ class LEDSignProtocolBackendLinux(object):
 
 	def transfer_bulk_out(self,handle:int,endpoint:int,data:bytes) -> bool:
 		data=bytearray(data)
-		print(data,len(data))
 		return self.ioctl(handle,LEDSignProtocolBackendLinux.USBDEVFS_BULK,struct.pack("<III4xQ",endpoint&0x7f,len(data),3000,ctypes.addressof((ctypes.c_uint8*len(data)).from_buffer(data))))==len(data)
 
 	def transfer_bulk_in(self,handle:int,endpoint:int,length:int) -> None|bytearray:
 		out=(ctypes.c_uint8*length)()
 		ret=self.ioctl(handle,LEDSignProtocolBackendLinux.USBDEVFS_BULK,struct.pack("<III4xQ",(endpoint&0x7f)|0x80,length,3000,ctypes.addressof(out)))
 		return (None if ret<0 else bytearray(out)[:ret])
-
-	def open(self,path:str) -> int:
-		handle=os.open(path,os.O_RDWR)
-		if (self.ioctl(handle,LEDSignProtocolBackendLinux.USBDEVFS_CLAIMINTERFACE,struct.pack("<I",1))<0):
-			raise LEDSignDeviceInUseError("Device already in use")
-		buffer=(ctypes.c_uint8*64)()
-		if (self.ioctl(handle,LEDSignProtocolBackendLinux.USBDEVFS_CONTROL,struct.pack("<BBHHHI4xQ",0xc0,0x52,0x5453,0,64,3000,ctypes.addressof(buffer)))!=5 or bytes(buffer[:5])!=b"reset"):
-			os.close(handle)
-			raise LEDSignProtocolError("Unable to reset device, Python API disabled")
-		return handle
-
-	def close(self,handle:int) -> None:
-		os.close(handle)
-
-	def io_read_write(self,handle:int,packet:bytes) -> bytearray:
-		packet=bytearray(packet)
-		if (self.ioctl(handle,LEDSignProtocolBackendLinux.USBDEVFS_BULK,struct.pack("<III4xQ",0x04,len(packet),3000,ctypes.addressof((ctypes.c_uint8*len(packet)).from_buffer(packet))))!=len(packet)):
-			raise LEDSignProtocolError("Write to endpoint 04h failed")
-		out=(ctypes.c_uint8*64)()
-		ret=self.ioctl(handle,LEDSignProtocolBackendLinux.USBDEVFS_BULK,struct.pack("<III4xQ",0x84,64,3000,ctypes.addressof(out)))
-		if (ret<2 or ret>64):
-			raise LEDSignProtocolError("Read from endpoint 84h failed")
-		return bytearray(out)[:ret]
-
-	def io_bulk_read(self,handle:int,size:int) -> bytearray:
-		out=(ctypes.c_uint8*size)()
-		ret=self.ioctl(handle,LEDSignProtocolBackendLinux.USBDEVFS_BULK,struct.pack("<III4xQ",0x85,size,3000,ctypes.addressof(out)))
-		if (ret!=size):
-			raise LEDSignProtocolError("Read from endpoint 85h failed")
-		return bytearray(out)
-
-	def io_bulk_write(self,handle:int,data:bytearray) -> None:
-		if (self.ioctl(handle,LEDSignProtocolBackendLinux.USBDEVFS_BULK,struct.pack("<III4xQ",0x05,len(data),3000,ctypes.addressof((ctypes.c_uint8*len(data)).from_buffer(data))))!=len(data)):
-			raise LEDSignProtocolError("Write to endpoint 05h failed")

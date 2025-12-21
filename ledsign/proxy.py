@@ -8,7 +8,7 @@ import threading
 
 
 
-__all__=["LEDSignProxyServer"]
+__all__=["LEDSignProxyServer","LEDSignBackendProxy"]
 
 
 
@@ -54,9 +54,8 @@ class LEDSignProxyServer(object):
 			if (file_path in self._device_handles_by_file_path):
 				self._device_handles_by_file_path[file_path].marked=True
 				continue
-			try:
-				handle=self._backend._open_raw(file_path)
-			except:
+			handle=self._backend.open(file_path)
+			if (handle is None):
 				continue
 			next_id=1
 			while (next_id in self._device_handles_by_id):
@@ -117,6 +116,15 @@ class LEDSignProxyServer(object):
 	def _handle_http_connection(self,cs):
 		try:
 			buffer=cs.recv(16384)
+			cs.settimeout(None)
+			if (buffer==b"\xffraw\xff"):
+				cs.sendall(buffer)
+				while (True):
+					buffer=cs.recv(16384)
+					if (not buffer):
+						return
+					cs.sendall(self._process_packet(buffer))
+				return
 			if (not buffer.startswith(b"GET / HTTP/1.1")):
 				return
 			ws_key=None
@@ -140,12 +148,13 @@ class LEDSignProxyServer(object):
 					return
 			if (ws_key is None):
 				return
-			cs.settimeout(None)
 			cs.sendall(b"HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: "+base64.b64encode(hashlib.sha1(ws_key+b"258EAFA5-E914-47DA-95CA-C5AB0DC85B11").digest())+b"\r\n\r\n")
 			current_frame_type=-1
 			current_frame_data=None
 			while (True):
 				buffer=cs.recv(16384)
+				if (not buffer):
+					return
 				i=0
 				while (i+1<len(buffer)):
 					if (buffer[i]&0x70):
@@ -205,6 +214,59 @@ class LEDSignProxyServer(object):
 			pass
 		finally:
 			cs.close()
+
+
+
+
+class LEDSignBackendProxy(object):
+	def __init__(self) -> None:
+		self._client_socket=None
+
+	def enumerate(self) -> list[str]:
+		data=self._execute(b"\x00\x00\x00\x00\x00\x00")
+		length=struct.unpack("<H",data[2:4])[0]
+		return [f"proxy/#{e:08x}" for e in struct.unpack(f"<{length}I",data[4:4+4*length])]
+
+	def open(self,path:str) -> int:
+		device_id=int(path[7:],16)
+		ret=self._execute(struct.pack("<BBIH2xB",0x02,0x52,device_id,0x5453,5))
+		if (ret[2] or len(ret)!=8 or bytes(ret[3:])!=b"reset"):
+			raise LEDSignProtocolError("Unable to reset device, Python API disabled")
+		return device_id
+
+	def close(self,handle:int) -> None:
+		pass
+
+	def io_read_write(self,handle:int,packet:bytes) -> bytearray:
+		ret=self._execute(struct.pack("<BBI",0x04,0x04,handle)+packet)
+		if (ret[2]):
+			raise LEDSignProtocolError("Write to endpoint 04h failed")
+		ret=self._execute(struct.pack("<BBIH",0x06,0x04,handle,64))
+		if (ret[2] or len(ret)<5):
+			raise LEDSignProtocolError("Read from endpoint 84h failed")
+		return ret[3:]
+
+	def io_bulk_read(self,handle:int,size:int) -> bytearray:
+		ret=self._execute(struct.pack("<BBIH",0x06,0x05,handle,size))
+		if (ret[2] or len(ret)!=size+3):
+			raise LEDSignProtocolError("Read from endpoint 85h failed")
+		return ret[3:]
+
+	def io_bulk_write(self,handle:int,data:bytearray) -> None:
+		if (self._execute(struct.pack("<BBI",0x04,0x05,handle)+data)[2]):
+			raise LEDSignProtocolError("Write to endpoint 04h failed")
+
+	def _execute(self,data):
+		if (self._client_socket is None):
+			self._client_socket=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+			try:
+				self._client_socket.connect(("127.0.0.1",LEDSignProxyServer.PROXY_PORT))
+			except ConnectionRefusedError:
+				raise LEDSignProtocolError("Unable to connect to proxy server, run 'ledsign -z' to start one")
+			self._client_socket.sendall(b"\xffraw\xff")
+			self._client_socket.recv(5)
+		self._client_socket.sendall(data)
+		return self._client_socket.recv(16384)
 
 
 
