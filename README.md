@@ -46,4 +46,16 @@ Options:
   -u PROGRAM, --upload=PROGRAM
                         upload file PROGRAM to the device (requires read-write
                         mode)
+  -z, --start-proxy-server
+                        start a proxy server (required to communicate with the
+                        device)
+```
+
+## Proxy server
+
+Due to issues with how Windows handles USB connections, a proxy server is required to bridge the gap between the system-level device handles and the UI/`ledsign` module. This proxy server can be started using the following command:
+
+```
+$ python -m ledsign -z
+Proxy server running on port 9100, hit 'Enter' to stop...
 ```
