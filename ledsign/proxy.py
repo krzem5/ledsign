@@ -14,7 +14,7 @@ __all__=["LEDSignProxyServer","LEDSignBackendProxy","LEDSignProxyError","LEDSign
 
 class LEDSignProxyError(Exception):
 	"""
-	Raised during any proxy-related exception.
+	Raised when any proxy-related exception is encountered.
 	"""
 
 
