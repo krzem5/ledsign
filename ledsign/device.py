@@ -274,10 +274,10 @@ class LEDSign(object):
 		"""
 		Opens the device pointed to by :python:`path` (or the default device if no path is provided), and returns its corresponding :py:class:`LEDSign` object. The device path must have been returned by a previous call to :py:func:`enumerate`.
 
-		If the device is already in use by a different program, a :py:exc:`LEDSignDeviceInUseError` will be raised. Additionally, if the device protocol version is incompatible, or if the Python API was disabled in device settings, a :py:exc:`LEDSignUnsupportedProtocolError` or :py:exc:`LEDSignProtocolError` exception will be returned respectively.
+		If the device is not found, a :py:exc:`LEDSignDeviceNotFoundError` will be raised. Additionally, if the device protocol version is incompatible, or if the Python API was disabled in device settings, a :py:exc:`LEDSignUnsupportedProtocolError` or :py:exc:`LEDSignProtocolError` exception will be returned respectively. If a proxy connection cannot be established, or if the proxy server is not running, a :py:exc:`LEDSignProxyError` will be returned (see :ref:`proxy-server` for documentation on how to start the server).
 
 		.. note::
-		   Due to the internal USB-level configuration, this library can be used alongside the UI without triggering a :py:exc:`LEDSignDeviceInUseError` exception. This feature allows the UI to be kept open while writing new programs to ease the debugging process.
+		   Due to the internal USB-level configuration, this library can be used alongside the UI without unintended protocol side effects. This feature allows the UI to be kept open while writing new programs to ease the debugging / visualization process.
 		"""
 		if (path is None):
 			devices=LEDSignProtocol.enumerate()
