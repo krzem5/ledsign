@@ -2,7 +2,7 @@ import setuptools
 
 
 
-VERSION="0.8.1"
+VERSION="0.8.2"
 
 
 
@@ -19,7 +19,7 @@ setuptools.setup(
 	packages=["ledsign"],
     python_requires=">=3.9",
 	classifiers=[
-		"Development Status :: 4 - Beta",
+		"Development Status :: 5 - Production/Stable",
 		"Intended Audience :: End Users/Desktop",
 		"Natural Language :: English",
 		"Operating System :: Microsoft :: Windows",
